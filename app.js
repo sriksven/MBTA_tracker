@@ -75,6 +75,8 @@ async function loadRoutes() {
         subwayRoutes.forEach(route => {
             selectedRoutes.add(route.id);
             document.querySelector(`[data-route-id="${route.id}"]`)?.classList.add('active');
+            // Load route shapes
+            loadRouteShape(route.id);
         });
 
         // Load initial data
@@ -115,12 +117,105 @@ function toggleRoute(routeId, element) {
     if (selectedRoutes.has(routeId)) {
         selectedRoutes.delete(routeId);
         element.classList.remove('active');
+        // Remove route line from map
+        if (routeLines[routeId]) {
+            map.removeLayer(routeLines[routeId]);
+            delete routeLines[routeId];
+        }
     } else {
         selectedRoutes.add(routeId);
         element.classList.add('active');
+        // Add route line to map
+        loadRouteShape(routeId);
     }
 
     updateVehicles();
+}
+
+// Load and display route shape (polyline)
+async function loadRouteShape(routeId) {
+    try {
+        const response = await fetch(`${MBTA_API_BASE}/shapes?filter[route]=${routeId}&api_key=${MBTA_API_KEY}`);
+        const data = await response.json();
+
+        console.log(`Loading shapes for route ${routeId}:`, data.data.length, 'shapes found');
+
+        if (data.data.length === 0) {
+            console.warn(`No shapes found for route ${routeId}`);
+            return;
+        }
+
+        // Get the route color
+        const routeColor = ROUTE_COLORS[routeId] || ROUTE_TYPE_COLORS[1] || '#666';
+        console.log(`Route ${routeId} color:`, routeColor);
+
+        // Create a layer group to hold all polylines for this route
+        const layerGroup = L.layerGroup().addTo(map);
+
+        // Draw all shapes for this route
+        data.data.forEach(shape => {
+            if (shape.attributes.polyline) {
+                try {
+                    // Decode the polyline
+                    const coordinates = decodePolyline(shape.attributes.polyline);
+
+                    if (coordinates.length > 0) {
+                        // Create the polyline on the map
+                        const polyline = L.polyline(coordinates, {
+                            color: routeColor,
+                            weight: 5,
+                            opacity: 0.7,
+                            smoothFactor: 1
+                        });
+
+                        // Add to layer group
+                        layerGroup.addLayer(polyline);
+                    }
+                } catch (e) {
+                    console.error(`Error decoding polyline for shape ${shape.id}:`, e);
+                }
+            }
+        });
+
+        // Store the layer group
+        routeLines[routeId] = layerGroup;
+        console.log(`Successfully loaded route ${routeId} with ${layerGroup.getLayers().length} polylines`);
+
+    } catch (error) {
+        console.error(`Error loading route shape for ${routeId}:`, error);
+    }
+}
+
+// Decode polyline (Google's encoded polyline format)
+function decodePolyline(encoded) {
+    const points = [];
+    let index = 0, len = encoded.length;
+    let lat = 0, lng = 0;
+
+    while (index < len) {
+        let b, shift = 0, result = 0;
+        do {
+            b = encoded.charCodeAt(index++) - 63;
+            result |= (b & 0x1f) << shift;
+            shift += 5;
+        } while (b >= 0x20);
+        const dlat = ((result & 1) ? ~(result >> 1) : (result >> 1));
+        lat += dlat;
+
+        shift = 0;
+        result = 0;
+        do {
+            b = encoded.charCodeAt(index++) - 63;
+            result |= (b & 0x1f) << shift;
+            shift += 5;
+        } while (b >= 0x20);
+        const dlng = ((result & 1) ? ~(result >> 1) : (result >> 1));
+        lng += dlng;
+
+        points.push([lat / 1e5, lng / 1e5]);
+    }
+
+    return points;
 }
 
 // Update Vehicles
