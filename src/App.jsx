@@ -16,7 +16,7 @@ function App() {
     const [routeLines, setRouteLines] = useState({})
     const [showRouteSelector, setShowRouteSelector] = useState(false)
     const [showAlertsSidebar, setShowAlertsSidebar] = useState(false)
-    const [isLocationEnabled, setIsLocationEnabled] = useState(false)
+    const [isLocationEnabled, setIsLocationEnabled] = useState(true)
     const [lastUpdate, setLastUpdate] = useState(null)
     const [loading, setLoading] = useState(true)
 

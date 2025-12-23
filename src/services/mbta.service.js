@@ -193,5 +193,41 @@ export const MBTAService = {
             console.error('Error fetching alerts:', error)
             return []
         }
+    },
+
+    // Get predictions for a stop
+    async getPredictions(stopId) {
+        try {
+            const response = await fetch(
+                `${MBTA_API_BASE}/predictions?filter[stop]=${stopId}&include=route,trip&sort=arrival_time&page[limit]=5&api_key=${MBTA_API_KEY}`
+            )
+            const data = await response.json()
+
+            return data.data.map(prediction => {
+                const routeId = prediction.relationships?.route?.data?.id
+                const tripId = prediction.relationships?.trip?.data?.id
+                const route = data.included?.find(i => i.type === 'route' && i.id === routeId)
+                const trip = data.included?.find(i => i.type === 'trip' && i.id === tripId)
+
+                return {
+                    id: prediction.id,
+                    arrivalTime: prediction.attributes.arrival_time,
+                    departureTime: prediction.attributes.departure_time,
+                    status: prediction.attributes.status,
+                    directionId: prediction.attributes.direction_id, // 0 or 1
+                    route: route ? {
+                        id: route.id,
+                        shortName: route.attributes.short_name,
+                        longName: route.attributes.long_name,
+                        color: ROUTE_COLORS[route.id] || route.attributes.color || '#666666',
+                        textColor: route.attributes.text_color || '000000'
+                    } : null,
+                    headsign: trip?.attributes?.headsign || 'Unknown Destination'
+                }
+            }).filter(p => p.arrivalTime || p.departureTime)
+        } catch (error) {
+            console.error(`Error fetching predictions for stop ${stopId}:`, error)
+            return []
+        }
     }
 }

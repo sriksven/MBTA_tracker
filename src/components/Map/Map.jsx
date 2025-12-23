@@ -1,5 +1,6 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import L from 'leaflet'
+import { MBTAService } from '../../services/mbta.service'
 import 'leaflet/dist/leaflet.css'
 import './Map.css'
 
@@ -20,6 +21,9 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
     const userMarkerRef = useRef(null)
     const watchIdRef = useRef(null)
 
+    // New Feature State
+    const [followedVehicleId, setFollowedVehicleId] = useState(null)
+
     // Initialize map
     useEffect(() => {
         if (!mapInstanceRef.current) {
@@ -31,6 +35,10 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
                 subdomains: 'abcd',
                 maxZoom: 19,
             }).addTo(mapInstanceRef.current)
+
+            // Stop following when user interacts with map
+            mapInstanceRef.current.on('dragstart', () => setFollowedVehicleId(null))
+            mapInstanceRef.current.on('zoomstart', () => setFollowedVehicleId(null))
         }
 
         return () => {
@@ -42,6 +50,8 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
     }, [])
 
     // Handle Geolocation
+    const userLocationCoords = useRef(null) // Store coords for calculations
+
     useEffect(() => {
         if (!mapInstanceRef.current) return
 
@@ -49,8 +59,9 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
             if ('geolocation' in navigator) {
                 watchIdRef.current = navigator.geolocation.watchPosition(
                     (position) => {
-                        const { latitude, longitude, heading } = position.coords
+                        const { latitude, longitude } = position.coords
                         const latlng = [latitude, longitude]
+                        userLocationCoords.current = { latitude, longitude }
 
                         // Create or update marker
                         if (!userMarkerRef.current) {
@@ -89,6 +100,7 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
             }
         } else {
             // Cleanup
+            userLocationCoords.current = null
             if (watchIdRef.current !== null) {
                 navigator.geolocation.clearWatch(watchIdRef.current)
                 watchIdRef.current = null
@@ -105,6 +117,33 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
             }
         }
     }, [showLocation])
+
+    // Helper: Calculate walking time (approximate)
+    const getWalkInfo = (start, endLat, endLng) => {
+        if (!start) return null
+
+        // Haversine distance
+        const R = 6371 // Radius of earth in km
+        const dLat = (endLat - start.latitude) * (Math.PI / 180)
+        const dLon = (endLng - start.longitude) * (Math.PI / 180)
+        const a =
+            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(start.latitude * (Math.PI / 180)) * Math.cos(endLat * (Math.PI / 180)) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2)
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+        const d = R * c // Distance in km
+
+        // Tortuosity factor (roads aren't straight lines) ~ 1.3
+        const realDistance = d * 1.3
+
+        // Walking speed ~ 5 km/h (approx 12 min/km)
+        const walkingMinutes = Math.ceil(realDistance * 12)
+
+        return {
+            distance: realDistance.toFixed(2), // km
+            minutes: walkingMinutes
+        }
+    }
 
     // Update route lines (always show for selected routes)
     useEffect(() => {
@@ -152,32 +191,109 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
                 className: 'custom-stop-marker',
                 html: `
           <div style="
-            width: 8px;
-            height: 8px;
+            width: 14px;
+            height: 14px;
             background: white;
-            border: 2px solid #333;
+            border: 3px solid #333;
             border-radius: 50%;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+            cursor: pointer;
+            transition: transform 0.2s ease;
           "></div>
         `,
-                iconSize: [8, 8],
-                iconAnchor: [4, 4],
+                iconSize: [14, 14],
+                iconAnchor: [7, 7],
             })
 
             const marker = L.marker([stop.latitude, stop.longitude], { icon }).addTo(
                 mapInstanceRef.current
             )
 
-            const popupContent = `
-        <div class="popup-content">
-          <div class="popup-title">${stop.name}</div>
-          <div class="popup-info">
-            <strong>Type:</strong> ${stop.type}<br>
-            ${stop.description ? `<strong>Description:</strong> ${stop.description}<br>` : ''}
-            ${stop.wheelchairAccessible ? '<strong>♿ Wheelchair Accessible</strong>' : ''}
-          </div>
-        </div>
-      `
+            // Initial static content
+            const baseContent = `
+                <div class="popup-content">
+                  <div class="popup-title">${stop.name}</div>
+                  <div class="popup-info">
+                    <strong>Type:</strong> ${stop.type}<br>
+                    ${stop.description ? `<strong>Description:</strong> ${stop.description}<br>` : ''}
+                    ${stop.wheelchairAccessible ? '<strong>♿ Wheelchair Accessible</strong>' : ''}
+                  </div>
+                  <div id="predictions-${stop.id}" class="popup-predictions">
+                    <div class="loading-predictions">Verifying schedule...</div>
+                  </div>
+                </div>
+            `
+
+            marker.bindPopup(baseContent, { minWidth: 220 })
+
+            // Fetch predictions on open
+            marker.on('popupopen', async () => {
+                const resultsContainer = document.getElementById(`predictions-${stop.id}`)
+                if (!resultsContainer) return
+
+                // Fetch
+                const predictions = await MBTAService.getPredictions(stop.id)
+
+                if (predictions.length === 0) {
+                    resultsContainer.innerHTML = '<div class="no-predictions">No upcoming arrivals</div>'
+                    return
+                }
+
+                // Smart Commute Info
+                const now = new Date()
+                let walkHtml = ''
+                const walkInfo = getWalkInfo(userLocationCoords.current, stop.latitude, stop.longitude)
+
+                if (walkInfo) {
+                    walkHtml = `
+                        <div class="walk-info" style="margin-bottom: 8px; font-size: 0.9em; display: flex; align-items: center; gap: 6px; color: #4a5568; background: #f7fafc; padding: 4px 8px; border-radius: 4px;">
+                            <span>🚶</span> <strong>${walkInfo.minutes} min walk</strong> <span style="color: #718096">(${walkInfo.distance} km)</span>
+                        </div>
+                    `
+                }
+
+                const html = predictions.map(p => {
+                    const time = new Date(p.arrivalTime || p.departureTime)
+                    const diffMs = time - now
+                    const diffMins = Math.floor(diffMs / 60000)
+                    const timeString = diffMins <= 0 ? 'Now' : `${diffMins} min`
+                    const routeColor = p.route?.color ? `#${p.route.color}` : '#666'
+
+                    let statusHtml = ''
+                    if (walkInfo) {
+                        const spareTime = diffMins - walkInfo.minutes
+                        let statusColor = '#38a169' // Green
+                        let statusText = `Leave in ${spareTime} min`
+
+                        if (spareTime < -2) {
+                            statusColor = '#e53e3e' // Red
+                            statusText = `Late by ${Math.abs(spareTime)} min`
+                        } else if (spareTime <= 1) {
+                            statusColor = '#d69e2e' // Orange
+                            statusText = `Leave NOW!`
+                        }
+
+                        statusHtml = `<div style="font-size: 0.75em; color: ${statusColor}; font-weight: 700; margin-top: 2px;">${statusText}</div>`
+                    } else {
+                        statusHtml = `<div style="font-size: 0.75em; color: #718096; margin-top: 2px;">${p.status || 'Scheduled'}</div>`
+                    }
+
+                    return `
+                        <div class="prediction-row" style="border-left: 3px solid ${routeColor}; flex-direction: column; align-items: stretch; gap: 0; padding-bottom: 8px;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <div class="pred-route-badge" style="background: ${routeColor}; color: #${p.route?.textColor || 'ffffff'}">${p.route?.shortName || ''}</div>
+                                <div class="pred-dest">${p.headsign}</div>
+                                <div class="pred-time" style="margin-left: auto;">${timeString}</div>
+                            </div>
+                            <div style="display: flex; justify-content: flex-end;">
+                                ${statusHtml}
+                            </div>
+                        </div>
+                    `
+                }).join('')
+
+                resultsContainer.innerHTML = walkHtml + html
+            })
 
             marker.bindTooltip(stop.name, {
                 permanent: true,
@@ -187,7 +303,6 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
                 opacity: 0.9
             })
 
-            marker.bindPopup(popupContent)
             stopMarkersRef.current[stop.id] = marker
         })
     }, [stops])
@@ -214,6 +329,7 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
             if (existingMarker) {
                 // Update existing marker
                 existingMarker.setLatLng([vehicle.latitude, vehicle.longitude])
+                existingMarker.setZIndexOffset(vehicle.id === followedVehicleId ? 2000 : 1000)
             } else {
                 // Create new marker
                 const icon = L.divIcon({
@@ -250,15 +366,37 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
               ${vehicle.stop ? `<strong>Current Stop:</strong> ${vehicle.stop.name}<br>` : ''}
               ${vehicle.trip ? `<strong>Direction:</strong> ${vehicle.trip.headsign || 'N/A'}<br>` : ''}
               <strong>Speed:</strong> ${vehicle.speed ? `${Math.round(vehicle.speed * 2.237)} mph` : 'N/A'}
+              <div class="vehicle-follow-hint" style="margin-top: 8px; font-size: 0.8em; color: #666; font-style: italic;">
+                (Tracking this vehicle)
+              </div>
             </div>
           </div>
         `
 
                 marker.bindPopup(popupContent)
+
+                // Click to follow
+                marker.on('click', () => {
+                    setFollowedVehicleId(vehicle.id)
+                })
+
                 vehicleMarkersRef.current[vehicle.id] = marker
             }
         })
-    }, [vehicles])
+    }, [vehicles, followedVehicleId])
+
+    // Effect to pan map when following a vehicle
+    useEffect(() => {
+        if (!mapInstanceRef.current || !followedVehicleId) return
+
+        const vehicle = vehicles.find(v => v.id === followedVehicleId)
+        if (vehicle) {
+            mapInstanceRef.current.panTo([vehicle.latitude, vehicle.longitude], {
+                animate: true,
+                duration: 1.0 // Smooth follow
+            })
+        }
+    }, [vehicles, followedVehicleId])
 
     return (
         <div className="map-wrapper">

@@ -149,6 +149,7 @@
     display: none !important;
     /* Hide the little arrow pointer */
 }
+
 /* User Location Marker */
 .user-location-marker {
     background: transparent !important;
@@ -187,8 +188,79 @@
         transform: translate(-50%, -50%) scale(0.5);
         opacity: 0.8;
     }
+
     100% {
         transform: translate(-50%, -50%) scale(1.5);
         opacity: 0;
     }
+}
+
+/* Prediction Popup Styles */
+.popup-predictions {
+    margin-top: 12px;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+    padding-top: 8px;
+    min-width: 200px;
+}
+
+.loading-predictions,
+.no-predictions {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    font-style: italic;
+    text-align: center;
+    padding: 4px 0;
+}
+
+.prediction-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    background: rgba(0, 0, 0, 0.03);
+    border-radius: 4px;
+    margin-bottom: 4px;
+    border-left-width: 4px !important;
+    /* Force width from inline style */
+}
+
+.prediction-row:last-child {
+    margin-bottom: 0;
+}
+
+.pred-route-badge {
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    min-width: 24px;
+    text-align: center;
+}
+
+.pred-dest {
+    flex: 1;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-weight: 500;
+    color: #333;
+    /* Dark text for readability in light popup */
+}
+
+.pred-time {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #1a202c;
+}
+
+/* Leaflet Popup Override */
+.leaflet-popup-content-wrapper {
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.leaflet-popup-content {
+    margin: 12px;
+    line-height: 1.4;
 }

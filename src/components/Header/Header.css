@@ -21,31 +21,32 @@
     align-items: center;
 }
 
-.header-title {
+.header-actions {
     display: flex;
     align-items: center;
     gap: var(--spacing-md);
 }
 
-.header-logo {
-    width: 36px;
-    height: 36px;
-    background: linear-gradient(135deg, var(--accent) 0%, #ffd700 100%);
-    color: var(--bg-primary);
-    border-radius: 50%;
+.logo {
     display: flex;
     align-items: center;
-    justify-content: center;
-    font-weight: 900;
-    font-size: 1.4rem;
-    box-shadow: 0 0 15px rgba(255, 199, 44, 0.3);
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    gap: var(--spacing-md);
+    color: var(--text-primary);
 }
 
-.header-title h1 {
+.logo-icon-svg {
+    width: 48px;
+    height: 48px;
+    color: #ffffff;
+    /* Make T logo white */
+    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.4));
+}
+
+.logo h1 {
     font-size: 1.5rem;
     font-weight: 800;
     background: linear-gradient(to right, #fff, #a0aec0);
+    background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     margin: 0;
@@ -66,66 +67,79 @@
     display: flex;
     flex-direction: column;
     align-items: flex-end;
-    padding: 0 var(--spacing-md);
+    padding: 0 var(--spacing-lg);
+    /* Increased padding */
     border-right: 1px solid rgba(255, 255, 255, 0.1);
+    min-width: 140px;
+    /* Ensure uniform width */
 }
 
 .stat-item:last-child {
     border-right: none;
-    padding-right: var(--spacing-sm);
+    padding-right: var(--spacing-md);
+    padding-left: var(--spacing-lg);
+}
+
+.stat-item:first-child {
+    padding-left: var(--spacing-md);
 }
 
 .stat-label {
-    font-size: 0.65rem;
+    font-size: 0.7rem;
     color: var(--text-secondary);
     text-transform: uppercase;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.1em;
     font-weight: 600;
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 6px;
+    margin-bottom: 2px;
 }
 
 .stat-value {
-    font-size: 1rem;
+    font-size: 1.2rem;
+    /* Larger numbers */
     font-weight: 700;
     color: var(--text-primary);
     font-variant-numeric: tabular-nums;
     font-family: 'SF Mono', 'Roboto Mono', monospace;
-    /* Monospace for numbers */
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
 }
+
 
 /* Location Toggle Button */
 .location-toggle-btn {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: var(--text-muted);
-    width: 40px;
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    color: #60a5fa;
     height: 40px;
-    border-radius: 50%;
+    padding: 0 16px;
+    /* Pill shape padding */
+    border-radius: 9999px;
     display: flex;
     align-items: center;
-    justify-content: center;
+    gap: 8px;
+    /* Space between icon and text */
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    margin-right: var(--spacing-md);
+    /* No margin-right needed now as we use gap in parent */
 }
 
 .location-toggle-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: var(--text-primary);
+    background: rgba(59, 130, 246, 0.2);
+    border-color: #60a5fa;
     transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
 }
 
 .location-toggle-btn.active {
-    background: rgba(59, 130, 246, 0.15);
-    /* Soft blue glow bg */
-    color: #60a5fa;
-    /* Blue icon */
-    border-color: #3b82f6;
+    background: #3b82f6;
+    /* Solid Blue */
+    color: #ffffff;
+    border-color: #2563eb;
     box-shadow:
-        0 0 10px rgba(59, 130, 246, 0.2),
-        inset 0 0 10px rgba(59, 130, 246, 0.1);
+        0 0 15px rgba(59, 130, 246, 0.4),
+        inset 0 0 10px rgba(255, 255, 255, 0.2);
 }
 
 .location-toggle-btn svg {
@@ -133,8 +147,14 @@
 }
 
 .location-toggle-btn.active svg {
-    transform: rotate(45deg);
-    filter: drop-shadow(0 0 5px rgba(59, 130, 246, 0.5));
+    transform: none;
+    filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.5));
+}
+
+.location-btn-text {
+    font-size: 0.9rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
 }
 
 @media (max-width: 768px) {
@@ -166,9 +186,20 @@
         font-size: 0.9rem;
     }
 
+    /* On mobile, maybe shrink button to icon only? */
     .location-toggle-btn {
+        padding: 0;
         width: 36px;
         height: 36px;
-        margin-right: var(--spacing-sm);
+        justify-content: center;
+        border-radius: 50%;
+    }
+
+    .location-btn-text {
+        display: none;
+    }
+
+    .location-toggle-btn svg {
+        margin: 0;
     }
 }

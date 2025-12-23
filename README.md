@@ -9,9 +9,13 @@ A production-grade real-time transit tracking application for the Massachusetts 
 ## ✨ Features
 
 - 🚇 **Real-time Vehicle Tracking** - Live positions of all MBTA subway trains with directional arrows
-- 🗺️ **Interactive Map** - Dark-themed Leaflet map with route lines and stop markers
+- 🏃 **Smart Commute Assistant** - Calculates walking time to stops and tells you exactly when to leave (e.g., "Leave in 5 min" or "Run!")
+- ⏱️ **Live Arrival Predictions** - Click any stop to see real-time countdowns for next arrivals
+- 🎯 **Vehicle Auto-Follow** - Click any vehicle to "lock" the camera and track it as it moves
+- 📍 **Smart Location** - Auto-zooms to your location and filters suggestions based on proximity
+- 🗺️ **Interactive Map** - Dark-themed Leaflet map with route lines and improved 14px stop markers
+- 🎨 **Premium Glassmorphic UI** - Modern translucent header, smooth animations, and polished interactions
 - 🚨 **Service Alerts** - Real-time service alerts in a collapsible sidebar
-- 📍 **Stop Markers** - All subway stations with accessibility information
 - 🎨 **Modern UI** - Production-grade dark theme with smooth animations
 - 📱 **Responsive Design** - Works seamlessly on desktop, tablet, and mobile
 - ⚡ **Fast Performance** - Optimized builds with code splitting and lazy loading
@@ -291,6 +295,7 @@ This application uses the [MBTA V3 API](https://api-v3.mbta.com/docs/swagger/ind
 - `/shapes` - Get route polylines
 - `/vehicles` - Get real-time vehicle positions
 - `/stops` - Get all subway stops
+- `/predictions` - Get live arrival times and smart status
 - `/alerts` - Get service alerts
 
 ## 🤝 Contributing
