@@ -61,7 +61,6 @@
     transform: scale(1.1);
 }
 
-
 /* Popup styles */
 .popup-content {
     padding: var(--spacing-sm);
@@ -132,4 +131,21 @@
         min-width: 40px;
         justify-content: center;
     }
+}
+
+/* Stop Label Tooltip */
+.stop-label-tooltip {
+    background: rgba(10, 14, 39, 0.8) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    color: var(--text-primary) !important;
+    font-size: 0.7rem;
+    padding: 2px 6px !important;
+    border-radius: 4px !important;
+    box-shadow: none !important;
+    white-space: nowrap;
+}
+
+.stop-label-tooltip::before {
+    display: none !important;
+    /* Hide the little arrow pointer */
 }

@@ -112,6 +112,14 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh }
         </div>
       `
 
+            marker.bindTooltip(stop.name, {
+                permanent: true,
+                direction: 'top',
+                offset: [0, -6],
+                className: 'stop-label-tooltip',
+                opacity: 0.9
+            })
+
             marker.bindPopup(popupContent)
             stopMarkersRef.current[stop.id] = marker
         })
