@@ -10,9 +10,14 @@
  * 4. Build artifacts exist (if running post-build)
  */
 
-const https = require('https');
-const fs = require('fs');
-const path = require('path');
+import https from 'https';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Get __dirname equivalent in ESM
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // ANSI color codes
 const colors = {
@@ -48,7 +53,7 @@ function testEnvironmentVariables() {
         const envPath = path.join(__dirname, '..', '.env');
         if (!fs.existsSync(envPath)) {
             log('⚠ .env file not found (checking skipped)', 'yellow');
-            resolve(true); // Don't fail build for this
+            resolve(true); // Don't fail the build
             return;
         }
 
@@ -62,11 +67,11 @@ function testEnvironmentVariables() {
                 resolve(true);
             } else {
                 log('⚠ VITE_MBTA_API_KEY not found in .env (using public API limits)', 'yellow');
-                resolve(true); // Don't fail the build, just warn
+                resolve(true);
             }
         } catch (error) {
             logError(`Error reading .env file: ${error.message}`);
-            resolve(false); // Fail if we can't read existing file
+            resolve(false);
         }
     });
 }
@@ -84,7 +89,7 @@ function testAPIConnectivity() {
                 'User-Agent': 'MBTA-Tracker-Smoke-Test',
                 'Accept': 'application/vnd.api+json'
             },
-            timeout: 10000 // Increased timeout
+            timeout: 10000
         };
 
         const req = https.request(options, (res) => {
@@ -154,16 +159,15 @@ function testCriticalEndpoints() {
                     'User-Agent': 'MBTA-Tracker-Smoke-Test',
                     'Accept': 'application/vnd.api+json'
                 },
-                timeout: 10000 // Increased timeout
+                timeout: 10000
             };
 
             const req = https.request(options, (res) => {
-                res.on('data', () => { }); // Consume data to ensure 'end' fires
+                res.on('data', () => { }); // Consume data
 
                 res.on('end', () => {
                     completed++;
 
-                    // Accept 200 OK
                     if (res.statusCode === 200) {
                         logSuccess(`Endpoint ${endpoint} accessible`);
                     } else {
@@ -212,7 +216,7 @@ function testBuildArtifacts() {
 
         if (!fs.existsSync(distPath)) {
             log('⚠ Build artifacts not found (run npm run build first)', 'yellow');
-            resolve(true); // Not a failure, just a warning
+            resolve(true);
             return;
         }
 
@@ -233,13 +237,11 @@ async function runSmokeTests() {
 
     const results = [];
 
-    // Run all tests
     results.push(await testEnvironmentVariables());
     results.push(await testAPIConnectivity());
     results.push(await testCriticalEndpoints());
     results.push(await testBuildArtifacts());
 
-    // Summary
     const passed = results.filter(r => r).length;
     const total = results.length;
 
@@ -254,7 +256,6 @@ async function runSmokeTests() {
     }
 }
 
-// Run tests
 runSmokeTests().catch((error) => {
     logError(`Smoke tests failed with error: ${error.message}`);
     process.exit(1);
