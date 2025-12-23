@@ -11,12 +11,14 @@ L.Icon.Default.mergeOptions({
     shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
 })
 
-function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh }) {
+function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, showLocation }) {
     const mapRef = useRef(null)
     const mapInstanceRef = useRef(null)
     const vehicleMarkersRef = useRef({})
     const stopMarkersRef = useRef({})
     const routeLinesRef = useRef({})
+    const userMarkerRef = useRef(null)
+    const watchIdRef = useRef(null)
 
     // Initialize map
     useEffect(() => {
@@ -38,6 +40,71 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh }
             }
         }
     }, [])
+
+    // Handle Geolocation
+    useEffect(() => {
+        if (!mapInstanceRef.current) return
+
+        if (showLocation) {
+            if ('geolocation' in navigator) {
+                watchIdRef.current = navigator.geolocation.watchPosition(
+                    (position) => {
+                        const { latitude, longitude, heading } = position.coords
+                        const latlng = [latitude, longitude]
+
+                        // Create or update marker
+                        if (!userMarkerRef.current) {
+                            const icon = L.divIcon({
+                                className: 'user-location-marker',
+                                html: `
+                                    <div class="user-marker-pulse"></div>
+                                    <div class="user-marker-dot"></div>
+                                `,
+                                iconSize: [20, 20],
+                                iconAnchor: [10, 10]
+                            })
+
+                            userMarkerRef.current = L.marker(latlng, {
+                                icon,
+                                zIndexOffset: 2000 // Topmost
+                            }).addTo(mapInstanceRef.current)
+
+                            userMarkerRef.current.bindPopup("You are here")
+
+                            // Fly to location on first fix
+                            mapInstanceRef.current.flyTo(latlng, 15)
+                        } else {
+                            userMarkerRef.current.setLatLng(latlng)
+                        }
+                    },
+                    (error) => {
+                        console.error("Geolocation error:", error)
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        maximumAge: 0,
+                        timeout: 5000
+                    }
+                )
+            }
+        } else {
+            // Cleanup
+            if (watchIdRef.current !== null) {
+                navigator.geolocation.clearWatch(watchIdRef.current)
+                watchIdRef.current = null
+            }
+            if (userMarkerRef.current) {
+                mapInstanceRef.current.removeLayer(userMarkerRef.current)
+                userMarkerRef.current = null
+            }
+        }
+
+        return () => {
+            if (watchIdRef.current !== null) {
+                navigator.geolocation.clearWatch(watchIdRef.current)
+            }
+        }
+    }, [showLocation])
 
     // Update route lines (always show for selected routes)
     useEffect(() => {

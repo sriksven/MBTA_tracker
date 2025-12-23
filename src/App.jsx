@@ -16,6 +16,7 @@ function App() {
     const [routeLines, setRouteLines] = useState({})
     const [showRouteSelector, setShowRouteSelector] = useState(false)
     const [showAlertsSidebar, setShowAlertsSidebar] = useState(false)
+    const [isLocationEnabled, setIsLocationEnabled] = useState(false)
     const [lastUpdate, setLastUpdate] = useState(null)
     const [loading, setLoading] = useState(true)
 
@@ -125,6 +126,8 @@ function App() {
                 vehicleCount={vehicles.length}
                 alertCount={alerts.length}
                 lastUpdate={lastUpdate}
+                isLocationEnabled={isLocationEnabled}
+                onToggleLocation={() => setIsLocationEnabled(!isLocationEnabled)}
             />
 
             <SidebarToggle
@@ -159,6 +162,7 @@ function App() {
                     selectedRoutes={selectedRoutes}
                     loading={loading}
                     onRefresh={handleRefresh}
+                    showLocation={isLocationEnabled}
                 />
 
                 <AlertsSidebar

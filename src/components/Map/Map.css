@@ -149,3 +149,46 @@
     display: none !important;
     /* Hide the little arrow pointer */
 }
+/* User Location Marker */
+.user-location-marker {
+    background: transparent !important;
+    border: none !important;
+}
+
+.user-marker-dot {
+    width: 12px;
+    height: 12px;
+    background-color: #3b82f6;
+    border-radius: 50%;
+    border: 2px solid white;
+    box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 2;
+}
+
+.user-marker-pulse {
+    width: 40px;
+    height: 40px;
+    background-color: rgba(59, 130, 246, 0.4);
+    border-radius: 50%;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    animation: user-pulse 2s infinite;
+    z-index: 1;
+}
+
+@keyframes user-pulse {
+    0% {
+        transform: translate(-50%, -50%) scale(0.5);
+        opacity: 0.8;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(1.5);
+        opacity: 0;
+    }
+}

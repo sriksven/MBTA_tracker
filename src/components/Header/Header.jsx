@@ -4,7 +4,9 @@ import './Header.css'
 function Header({
     vehicleCount,
     alertCount,
-    lastUpdate
+    lastUpdate,
+    isLocationEnabled,
+    onToggleLocation
 }) {
     const [timeString, setTimeString] = useState('--:--:--')
 
@@ -27,6 +29,20 @@ function Header({
                 </div>
 
                 <div className="header-stats">
+                    <button
+                        className={`location-toggle-btn ${isLocationEnabled ? 'active' : ''}`}
+                        onClick={onToggleLocation}
+                        title={isLocationEnabled ? "Disable User Location" : "Enable User Location"}
+                        aria-label="Toggle user location"
+                    >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            {isLocationEnabled ? (
+                                <path d="M12 2L2 22L12 18L22 22L12 2Z" fill="currentColor" />
+                            ) : (
+                                <path d="M12 2L2 22L12 18L22 22L12 2Z" />
+                            )}
+                        </svg>
+                    </button>
                     <div className="stat-item">
                         <span className="stat-label">Active Vehicles</span>
                         <span className="stat-value">{vehicleCount}</span>
