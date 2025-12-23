@@ -145,29 +145,27 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh }
                     className: 'custom-vehicle-marker',
                     html: `
             <div class="vehicle-marker-inner" style="
-              width: 32px;
-              height: 32px;
-              background: ${routeColor};
-              border: 3px solid white;
-              border-radius: 50%;
-              box-shadow: 0 3px 10px rgba(0,0,0,0.4);
+              width: 30px;
+              height: 30px;
               transform: rotate(${vehicle.bearing || 0}deg);
               display: flex;
               align-items: center;
               justify-content: center;
+              filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
             ">
-              <svg width="16" height="16" viewBox="0 0 16 16" style="transform: translateY(-1px);">
-                <path d="M8 2 L12 10 L8 8 L4 10 Z" fill="white" stroke="white" stroke-width="0.5"/>
+              <svg width="30" height="30" viewBox="0 0 24 24">
+                <path d="M12 2L3 22L12 17L21 22L12 2Z" fill="white" stroke="${routeColor}" stroke-width="2" stroke-linejoin="round"/>
               </svg>
             </div>
           `,
-                    iconSize: [32, 32],
-                    iconAnchor: [16, 16],
+                    iconSize: [30, 30],
+                    iconAnchor: [15, 15],
                 })
 
-                const marker = L.marker([vehicle.latitude, vehicle.longitude], { icon }).addTo(
-                    mapInstanceRef.current
-                )
+                const marker = L.marker([vehicle.latitude, vehicle.longitude], {
+                    icon,
+                    zIndexOffset: 1000 // Ensure vehicles are always on top of stops
+                }).addTo(mapInstanceRef.current)
 
                 const popupContent = `
           <div class="popup-content">

@@ -52,23 +52,15 @@
     border: none !important;
 }
 
+/* Vehicle marker inner update */
 .vehicle-marker-inner {
-    animation: pulse 2s infinite;
+    transition: transform 0.3s ease;
 }
 
-@keyframes pulse {
-    0% {
-        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4), 0 0 0 0 rgba(66, 153, 225, 0.7);
-    }
-
-    50% {
-        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4), 0 0 0 8px rgba(66, 153, 225, 0);
-    }
-
-    100% {
-        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4), 0 0 0 0 rgba(66, 153, 225, 0);
-    }
+.vehicle-marker-inner:hover {
+    transform: scale(1.1);
 }
+
 
 /* Popup styles */
 .popup-content {
@@ -90,6 +82,7 @@
 .popup-info strong {
     color: var(--text-primary);
 }
+
 /* Map refresh button */
 .map-refresh-btn {
     position: absolute;
@@ -133,7 +126,7 @@
     .map-refresh-btn span {
         display: none;
     }
-    
+
     .map-refresh-btn {
         padding: var(--spacing-sm);
         min-width: 40px;
