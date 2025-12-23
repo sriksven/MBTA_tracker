@@ -1,118 +1,20 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Real-time MBTA transit tracker with live vehicle positions and service alerts" />
     <title>MBTA Live Tracker - Real-Time Transit</title>
-    <meta name="description"
-        content="Track MBTA trains, buses, and trams in real-time with live predictions and alerts">
 
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
-        rel="stylesheet">
-
-    <link rel="stylesheet" href="styles.css">
 </head>
 
 <body>
-    <!-- Header -->
-    <header class="header">
-        <div class="header-content">
-            <div class="logo">
-                <div class="logo-icon">T</div>
-                <h1>MBTA Live Tracker</h1>
-            </div>
-            <div class="header-stats">
-                <div class="stat-item">
-                    <span class="stat-label">Active Vehicles</span>
-                    <span class="stat-value" id="vehicleCount">0</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">Last Update</span>
-                    <span class="stat-value" id="lastUpdate">--:--</span>
-                </div>
-            </div>
-            <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Toggle menu">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M3 12h18M3 6h18M3 18h18" />
-                </svg>
-            </button>
-        </div>
-    </header>
-
-    <!-- Mobile Overlay -->
-    <div class="mobile-overlay" id="mobileOverlay"></div>
-
-    <!-- Main Container -->
-    <div class="container">
-        <!-- Sidebar -->
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <h2>Route Filters</h2>
-                <button class="refresh-btn" id="refreshBtn">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2" />
-                    </svg>
-                    Refresh
-                </button>
-            </div>
-
-            <div class="route-filters" id="routeFilters">
-                <div class="filter-loading">Loading routes...</div>
-            </div>
-
-            <div class="alerts-section">
-                <h3>Service Alerts</h3>
-                <div class="alerts-container" id="alertsContainer">
-                    <div class="alert-loading">Loading alerts...</div>
-                </div>
-            </div>
-        </aside>
-
-        <!-- Map Container -->
-        <main class="map-container">
-            <div id="map"></div>
-
-            <!-- Legend -->
-            <div class="legend">
-                <h4>Legend</h4>
-                <div class="legend-item">
-                    <div class="legend-marker vehicle-marker"></div>
-                    <span>Active Vehicle</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-marker stop-marker"></div>
-                    <span>Station/Stop</span>
-                </div>
-            </div>
-
-            <!-- Loading Overlay -->
-            <div class="loading-overlay" id="loadingOverlay">
-                <div class="loading-spinner"></div>
-                <p>Loading MBTA data...</p>
-            </div>
-        </main>
-    </div>
-
-    <!-- Vehicle Info Modal -->
-    <div class="modal" id="vehicleModal">
-        <div class="modal-content">
-            <button class="modal-close" id="modalClose">&times;</button>
-            <div id="modalBody"></div>
-        </div>
-    </div>
-
-    <!-- Leaflet JS -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-    <!-- Main App -->
-    <script src="app.js"></script>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
 </body>
 
 </html>

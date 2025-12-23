@@ -1,0 +1,150 @@
+.route-selector {
+    width: 350px;
+    min-width: 350px;
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: var(--shadow-lg);
+    z-index: var(--z-base);
+    transition: width 0.3s ease, min-width 0.3s ease;
+}
+
+.route-selector.collapsed {
+    width: 0;
+    min-width: 0;
+    border-right: none;
+    box-shadow: none;
+}
+
+.route-selector-header {
+    padding: var(--spacing-lg);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.route-selector-header h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.header-buttons {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.refresh-btn-small,
+.close-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: white;
+    padding: var(--spacing-sm);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all var(--transition-base);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+}
+
+.refresh-btn-small:hover,
+.close-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.refresh-btn-small svg,
+.close-btn svg {
+    width: 18px;
+    height: 18px;
+    transition: transform var(--transition-base);
+}
+
+.refresh-btn-small:active svg {
+    transform: rotate(180deg);
+}
+
+.close-btn:hover {
+    background: var(--danger);
+}
+
+.close-btn:hover svg {
+    transform: rotate(90deg);
+}
+
+.route-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--spacing-md);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.route-item {
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid transparent;
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-md);
+    cursor: pointer;
+    transition: all var(--transition-base);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    text-align: left;
+    width: 100%;
+}
+
+.route-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateX(4px);
+}
+
+.route-item.active {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: var(--route-color);
+    box-shadow: 0 0 20px rgba(var(--route-color), 0.3);
+}
+
+.route-badge {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 1rem;
+    color: white;
+    flex-shrink: 0;
+    box-shadow: var(--shadow-md);
+}
+
+.route-name {
+    flex: 1;
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+}
+
+/* Mobile styles */
+@media (max-width: 768px) {
+    .route-selector {
+        position: fixed;
+        left: -300px;
+        top: 60px;
+        bottom: 0;
+        z-index: var(--z-modal);
+        transition: left var(--transition-base);
+    }
+
+    .route-selector.open {
+        left: 0;
+    }
+}

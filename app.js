@@ -373,30 +373,25 @@ function addVehicleMarker(vehicle, included, routeColor) {
         className: 'custom-vehicle-marker',
         html: `
             <div class="vehicle-marker-inner" style="
-                width: 24px;
-                height: 24px;
+                width: 32px;
+                height: 32px;
                 background: ${routeColor};
                 border: 3px solid white;
                 border-radius: 50%;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.3), 0 0 0 0 ${routeColor};
+                box-shadow: 0 3px 10px rgba(0,0,0,0.4), 0 0 0 0 ${routeColor};
                 transform: rotate(${bearing || 0}deg);
                 display: flex;
                 align-items: center;
                 justify-content: center;
                 animation: pulse 2s infinite;
             ">
-                <div style="
-                    width: 0;
-                    height: 0;
-                    border-left: 4px solid transparent;
-                    border-right: 4px solid transparent;
-                    border-bottom: 8px solid white;
-                    transform: translateY(-2px);
-                "></div>
+                <svg width="16" height="16" viewBox="0 0 16 16" style="transform: translateY(-1px);">
+                    <path d="M8 2 L12 10 L8 8 L4 10 Z" fill="white" stroke="white" stroke-width="0.5"/>
+                </svg>
             </div>
         `,
-        iconSize: [24, 24],
-        iconAnchor: [12, 12]
+        iconSize: [32, 32],
+        iconAnchor: [16, 16]
     });
 
     const marker = L.marker([latitude, longitude], { icon })
@@ -436,12 +431,18 @@ async function loadAlerts() {
         const data = await response.json();
 
         const alertsContainer = document.getElementById('alertsContainer');
+        const alertCount = document.getElementById('alertCount');
 
         if (data.data.length === 0) {
             alertsContainer.innerHTML = '<div class="alert-loading">No active alerts</div>';
+            alertCount.textContent = '0';
             return;
         }
 
+        // Update alert count
+        alertCount.textContent = data.data.length;
+
+        // Clear container
         alertsContainer.innerHTML = '';
 
         data.data.forEach(alert => {
@@ -567,4 +568,172 @@ function setupMobileMenu() {
 // Initialize mobile menu on load
 document.addEventListener('DOMContentLoaded', () => {
     setupMobileMenu();
+    setupControlButtons();
+    loadStops();
 });
+
+// Setup Control Buttons
+function setupControlButtons() {
+    // Theme Toggle
+    const themeToggle = document.getElementById('themeToggle');
+    const themeText = document.getElementById('themeText');
+    const savedTheme = localStorage.getItem('mbta-theme') || 'dark';
+
+    if (savedTheme === 'light') {
+        document.body.classList.add('light-theme');
+        themeToggle.classList.add('active');
+        themeText.textContent = 'Dark';
+        updateMapTiles('light');
+    }
+
+    themeToggle.addEventListener('click', () => {
+        document.body.classList.toggle('light-theme');
+        themeToggle.classList.toggle('active');
+
+        const isLight = document.body.classList.contains('light-theme');
+        themeText.textContent = isLight ? 'Dark' : 'Light';
+        localStorage.setItem('mbta-theme', isLight ? 'light' : 'dark');
+        updateMapTiles(isLight ? 'light' : 'dark');
+    });
+
+    // Route Lines Toggle
+    const routeLinesToggle = document.getElementById('routeLinesToggle');
+    let routeLinesVisible = true;
+
+    routeLinesToggle.addEventListener('click', () => {
+        routeLinesVisible = !routeLinesVisible;
+        routeLinesToggle.classList.toggle('active');
+
+        // Toggle visibility of all route lines
+        Object.values(routeLines).forEach(layerGroup => {
+            if (routeLinesVisible) {
+                if (!map.hasLayer(layerGroup)) {
+                    map.addLayer(layerGroup);
+                }
+            } else {
+                if (map.hasLayer(layerGroup)) {
+                    map.removeLayer(layerGroup);
+                }
+            }
+        });
+    });
+
+    // Alerts Sidebar Toggle
+    const alertsToggle = document.getElementById('alertsToggle');
+    const alertsSidebar = document.getElementById('alertsSidebar');
+    const closeAlertsSidebar = document.getElementById('closeAlertsSidebar');
+
+    alertsToggle.addEventListener('click', () => {
+        alertsSidebar.classList.toggle('collapsed');
+        alertsToggle.classList.toggle('active');
+    });
+
+    closeAlertsSidebar.addEventListener('click', () => {
+        alertsSidebar.classList.add('collapsed');
+        alertsToggle.classList.remove('active');
+    });
+}
+
+// Update Map Tiles based on theme
+function updateMapTiles(theme) {
+    // Remove existing tile layers
+    map.eachLayer((layer) => {
+        if (layer instanceof L.TileLayer) {
+            map.removeLayer(layer);
+        }
+    });
+
+    // Add appropriate tile layer
+    if (theme === 'light') {
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 19
+        }).addTo(map);
+    } else {
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 19
+        }).addTo(map);
+    }
+}
+
+// Load Stops for all subway routes
+async function loadStops() {
+    try {
+        // Get all subway routes (type 0 and 1)
+        const response = await fetch(`${MBTA_API_BASE}/stops?filter[route_type]=0,1&api_key=${MBTA_API_KEY}`);
+        const data = await response.json();
+
+        console.log(`Loading ${data.data.length} stops`);
+
+        // Track unique locations to avoid duplicates
+        const uniqueLocations = new Map();
+
+        // Filter to only show parent stations (location_type = 1) to avoid duplicates
+        // If no parent stations, fall back to regular stops
+        data.data.forEach(stop => {
+            const { latitude, longitude, location_type } = stop.attributes;
+
+            if (!latitude || !longitude) return;
+
+            // Create a location key based on coordinates (rounded to avoid floating point issues)
+            const locationKey = `${latitude.toFixed(5)},${longitude.toFixed(5)}`;
+
+            // Only add if we haven't seen this location, or if this is a parent station
+            if (!uniqueLocations.has(locationKey) || location_type === 1) {
+                uniqueLocations.set(locationKey, stop);
+            }
+        });
+
+        console.log(`Filtered to ${uniqueLocations.size} unique stop locations`);
+
+        // Create markers for each unique stop location
+        uniqueLocations.forEach((stop, locationKey) => {
+            const { latitude, longitude } = stop.attributes;
+
+            // Create a small marker for stops
+            const icon = L.divIcon({
+                className: 'custom-stop-marker',
+                html: `
+                    <div style="
+                        width: 8px;
+                        height: 8px;
+                        background: white;
+                        border: 2px solid #333;
+                        border-radius: 50%;
+                        box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+                    "></div>
+                `,
+                iconSize: [8, 8],
+                iconAnchor: [4, 4]
+            });
+
+            const marker = L.marker([latitude, longitude], { icon })
+                .addTo(map);
+
+            // Add popup with stop information
+            const popupContent = `
+                <div class="popup-content">
+                    <div class="popup-title">${stop.attributes.name}</div>
+                    <div class="popup-info">
+                        <strong>Type:</strong> ${stop.attributes.location_type === 1 ? 'Station' : 'Stop'}<br>
+                        ${stop.attributes.description ? `<strong>Description:</strong> ${stop.attributes.description}<br>` : ''}
+                        ${stop.attributes.wheelchair_boarding === 1 ? '<strong>♿ Wheelchair Accessible</strong>' : ''}
+                    </div>
+                </div>
+            `;
+
+            marker.bindPopup(popupContent);
+
+            // Store the marker
+            stopMarkers[stop.id] = marker;
+        });
+
+        console.log(`Successfully loaded ${Object.keys(stopMarkers).length} stop markers`);
+
+    } catch (error) {
+        console.error('Error loading stops:', error);
+    }
+}

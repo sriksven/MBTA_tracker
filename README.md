@@ -1,101 +1,326 @@
 # 🚇 MBTA Live Tracker
 
-A real-time transit tracker for the Massachusetts Bay Transportation Authority (MBTA) system, featuring live vehicle positions, route filtering, and service alerts.
+A production-grade real-time transit tracking application for the Massachusetts Bay Transportation Authority (MBTA) subway system. Built with React, Vite, and Leaflet.
+
+![MBTA Live Tracker](https://img.shields.io/badge/React-18.2.0-blue)
+![Vite](https://img.shields.io/badge/Vite-5.0.8-purple)
+![License](https://img.shields.io/badge/license-MIT-green)
 
 ## ✨ Features
 
-- **Real-Time Vehicle Tracking**: See live positions of trains, trams, and buses on an interactive map
-- **Auto-Refresh**: Vehicle positions update every 10 seconds automatically
-- **Route Filtering**: Toggle specific routes on/off to focus on what matters to you
-- **Service Alerts**: Stay informed about delays and service changes
-- **Interactive Map**: Click on vehicles to see detailed information including:
-  - Current status
-  - Direction/destination
-  - Current stop
-  - Speed
-- **Beautiful Dark Theme**: Modern, premium design with MBTA brand colors
-- **Responsive Design**: Works on desktop and mobile devices
+- 🚇 **Real-time Vehicle Tracking** - Live positions of all MBTA subway trains with directional arrows
+- 🗺️ **Interactive Map** - Dark-themed Leaflet map with route lines and stop markers
+- 🚨 **Service Alerts** - Real-time service alerts in a collapsible sidebar
+- 📍 **Stop Markers** - All subway stations with accessibility information
+- 🎨 **Modern UI** - Production-grade dark theme with smooth animations
+- 📱 **Responsive Design** - Works seamlessly on desktop, tablet, and mobile
+- ⚡ **Fast Performance** - Optimized builds with code splitting and lazy loading
+- 🧪 **Fully Tested** - Unit tests, smoke tests, and automated CI/CD
 
-## 🚀 Getting Started
+## 🚀 Quick Start
 
 ### Prerequisites
 
-- A modern web browser (Chrome, Firefox, Safari, Edge)
-- Internet connection (for API access and map tiles)
+- Node.js 18+ and npm
 
-### Running Locally
-
-1. Clone this repository or download the files
-2. Open `index.html` in your web browser, or
-3. Use a local server:
+### Installation
 
 ```bash
-# Using Python 3
-python3 -m http.server 8000
+# Clone the repository
+git clone https://github.com/sriksven/MBTA_tracker.git
+cd MBTA_tracker
 
-# Using Node.js (with http-server)
-npx http-server -p 8000
+# Install dependencies
+npm install
+
+# Create .env file (copy from .env.example)
+cp .env.example .env
+# Add your MBTA API key to .env
+
+# Start development server
+npm run dev
 ```
 
-4. Navigate to `http://localhost:8000`
+The app will open at `http://localhost:3000`
 
-## 🗺️ How to Use
+## 📁 Project Structure
 
-1. **Select Routes**: Click on route cards in the left sidebar to toggle them on/off
-2. **View Vehicles**: Active vehicles appear as colored markers on the map
-3. **Get Details**: Click any vehicle marker to see detailed information
-4. **Refresh**: Click the "Refresh" button to manually update data
-5. **Check Alerts**: Scroll down in the sidebar to see active service alerts
-
-## 🔧 Configuration
-
-The app uses the MBTA V3 API. The API key is configured in `app.js`:
-
-```javascript
-const MBTA_API_KEY = 'd5dbafa546244e839c05bc7e3d5955d4';
+```
+MBTA_tracker/
+├── .github/
+│   └── workflows/
+│       └── ci-cd.yml              # CI/CD pipeline
+├── src/
+│   ├── __tests__/                 # Unit tests
+│   │   ├── setup.js
+│   │   └── mbta.service.test.js
+│   ├── components/                # React components
+│   │   ├── Header/
+│   │   ├── Map/
+│   │   └── AlertsSidebar/
+│   ├── services/
+│   │   └── mbta.service.js        # MBTA API service
+│   ├── App.jsx
+│   ├── main.jsx
+│   └── index.css
+├── tests/
+│   └── smoke-test.js              # Smoke tests
+├── .env.example                   # Environment template
+├── package.json
+├── vite.config.js
+└── vitest.config.js
 ```
 
-To use your own API key:
-1. Register at [https://api-v3.mbta.com/register](https://api-v3.mbta.com/register)
-2. Replace the API key in `app.js`
+## 🛠️ Available Scripts
 
-## 📊 Data Sources
+| Script | Description |
+|--------|-------------|
+| `npm run dev` | Start development server (port 3000) |
+| `npm run build` | Build for production |
+| `npm run preview` | Preview production build |
+| `npm run lint` | Run ESLint |
+| `npm run format` | Format code with Prettier |
+| `npm run format:check` | Check code formatting |
+| `npm run test` | Run unit tests |
+| `npm run test:ui` | Run tests with interactive UI |
+| `npm run test:smoke` | Run smoke tests |
 
-- **MBTA V3 API**: Real-time vehicle positions, predictions, and alerts
-- **OpenStreetMap**: Base map tiles via CartoDB Dark theme
-- **Leaflet.js**: Interactive mapping library
+## 🧪 Testing
 
-## 🎨 Technologies Used
+### Unit Tests
+```bash
+npm run test              # Run all tests
+npm run test:ui           # Interactive test UI
+npm test -- --coverage    # Generate coverage report
+```
 
-- **HTML5**: Semantic structure
-- **CSS3**: Modern styling with animations and glassmorphism
-- **JavaScript (ES6+)**: Application logic and API integration
-- **Leaflet.js**: Interactive maps
-- **MBTA V3 API**: Real-time transit data
+### Smoke Tests
+Validates environment setup, API connectivity, and critical endpoints:
+```bash
+npm run test:smoke
+```
 
-## 📱 Responsive Design
+### CI/CD Pipeline
+All tests run automatically on every push:
+1. ✅ Lint & Format Check
+2. ✅ Smoke Tests (API validation)
+3. ✅ Unit Tests (Service logic)
+4. ✅ Build
+5. ✅ Deploy to GitHub Pages (main branch only)
 
-The tracker is fully responsive and works on:
-- Desktop computers
-- Tablets
-- Mobile phones
+## 🔐 Environment Variables
 
-## 🔄 Auto-Update
+Create a `.env` file in the root directory:
 
-Vehicle positions automatically refresh every 10 seconds. Updates pause when the browser tab is hidden to save resources.
+```env
+VITE_MBTA_API_KEY=your_api_key_here
+```
 
-## 📝 License
+For GitHub Actions deployment, add `VITE_MBTA_API_KEY` as a repository secret.
 
-This project uses public MBTA data. The MBTA logo and branding are property of the Massachusetts Bay Transportation Authority.
+## 🌐 Deployment
+
+### GitHub Pages
+
+1. **Add GitHub Secret:**
+   - Go to Settings → Secrets and variables → Actions
+   - Add `VITE_MBTA_API_KEY` with your API key
+
+2. **Enable GitHub Pages:**
+   - Go to Settings → Pages
+   - Source: GitHub Actions
+
+3. **Push to Main:**
+   ```bash
+   git push origin main
+   ```
+
+Your site will be live at: `https://[username].github.io/MBTA_tracker/`
+
+### Custom Domain
+
+Add a `CNAME` file to the `public/` folder with your domain name.
+
+## 🎨 Tech Stack
+
+### Core
+- **React 18** - UI framework
+- **Vite 5** - Build tool and dev server
+- **Leaflet** - Interactive maps
+- **React-Leaflet** - React bindings for Leaflet
+
+### Development
+- **Vitest** - Unit testing framework
+- **React Testing Library** - Component testing
+- **ESLint** - Code linting
+- **Prettier** - Code formatting
+
+### CI/CD
+- **GitHub Actions** - Automated testing and deployment
+- **GitHub Pages** - Static site hosting
+
+## 🏗️ Architecture
+
+### Components
+
+**Header**
+- Displays active vehicle count and last update time
+- Control buttons for alerts, route lines, and refresh
+- Responsive design with mobile menu
+
+**Map**
+- Interactive Leaflet map with dark theme
+- Real-time vehicle markers with direction indicators
+- Route polylines for all subway lines
+- Stop markers for all stations
+- Custom popups with vehicle/stop details
+
+**Alerts Sidebar**
+- Collapsible right sidebar
+- Service alerts with severity levels
+- Auto-updates with latest alerts
+- Mobile-responsive with overlay
+
+### Services
+
+**MBTA Service** (`src/services/mbta.service.js`)
+- Handles all API calls to MBTA V3 API
+- Data transformation and normalization
+- Polyline decoding for route shapes
+- Error handling and fallbacks
+
+## 📊 Performance Optimizations
+
+- ✅ Code splitting (React vendor, Leaflet vendor)
+- ✅ Tree shaking for smaller bundles
+- ✅ Lazy loading of components
+- ✅ Optimized re-renders with React.memo
+- ✅ Debounced API calls
+- ✅ Source maps for debugging
+- ✅ Asset optimization
+
+## 🎯 Code Quality
+
+### ESLint Configuration
+- React recommended rules
+- React Hooks rules
+- Custom rules for production code
+- No unused variables warnings
+
+### Prettier Configuration
+- Single quotes
+- No semicolons
+- 100 character line width
+- Trailing commas (ES5)
+
+### Test Coverage Goals
+- Services: 80%+
+- Components: 70%+
+- Overall: 75%+
+
+## 🔄 Development Workflow
+
+1. **Create Feature Branch**
+   ```bash
+   git checkout -b feature/your-feature
+   ```
+
+2. **Make Changes**
+   - Write code
+   - Add tests
+   - Update documentation
+
+3. **Run Tests**
+   ```bash
+   npm run lint
+   npm run format:check
+   npm run test
+   npm run test:smoke
+   ```
+
+4. **Commit & Push**
+   ```bash
+   git add .
+   git commit -m "feat: your feature description"
+   git push origin feature/your-feature
+   ```
+
+5. **Create Pull Request**
+   - CI/CD pipeline runs automatically
+   - All tests must pass
+   - Code review required
+
+6. **Merge to Main**
+   - Automatic deployment to GitHub Pages
+
+## 🐛 Troubleshooting
+
+### "npm not found"
+Install Node.js from https://nodejs.org/
+
+### API Key Issues
+- Check `.env` file exists
+- Verify `VITE_MBTA_API_KEY` is set
+- For GitHub Actions, check repository secrets
+
+### Build Fails
+```bash
+npm run lint          # Check for linting errors
+npm run test          # Run tests
+rm -rf node_modules   # Clear dependencies
+npm install           # Reinstall
+```
+
+### Tests Fail
+```bash
+npm run test -- --watch    # Watch mode for debugging
+npm run test:ui            # Interactive test UI
+```
+
+### Map Not Loading
+- Check browser console for errors
+- Verify Leaflet CSS is loaded
+- Check API key is valid
+
+## 📚 API Documentation
+
+This application uses the [MBTA V3 API](https://api-v3.mbta.com/docs/swagger/index.html).
+
+### Endpoints Used
+- `/routes` - Get all subway routes
+- `/shapes` - Get route polylines
+- `/vehicles` - Get real-time vehicle positions
+- `/stops` - Get all subway stops
+- `/alerts` - Get service alerts
 
 ## 🤝 Contributing
 
-Feel free to fork this project and submit pull requests for improvements!
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests
+5. Submit a pull request
 
-## 📧 Support
+## 📄 License
 
-For MBTA API issues, contact: developer@mbta.com
+MIT License - feel free to use this project for learning or production!
+
+## 🙏 Acknowledgments
+
+- MBTA for providing the public API
+- OpenStreetMap contributors
+- CARTO for map tiles
+- React and Vite communities
+
+## 📞 Support
+
+For issues and questions:
+- Open an issue on GitHub
+- Check existing documentation
+- Review the troubleshooting section
 
 ---
 
-Built with ❤️ for Boston transit riders
+**Built with ❤️ for the MBTA community**
+
+🚀 **Live Demo:** [https://sriksven.github.io/MBTA_tracker/](https://sriksven.github.io/MBTA_tracker/)

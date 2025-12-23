@@ -1,0 +1,61 @@
+.sidebar-toggle {
+    position: fixed;
+    top: 50%;
+    transform: translateY(-50%);
+    background: var(--primary);
+    border: 2px solid var(--accent);
+    color: white;
+    padding: var(--spacing-md) var(--spacing-sm);
+    border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 0.875rem;
+    transition: all var(--transition-base);
+    z-index: var(--z-fixed);
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    box-shadow: var(--shadow-lg);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+.sidebar-toggle.left {
+    left: 0;
+    border-left: none;
+}
+
+.sidebar-toggle.right {
+    right: 0;
+    border-right: none;
+    border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+}
+
+.sidebar-toggle:hover {
+    background: var(--primary-dark);
+    transform: translateY(-50%) scale(1.05);
+}
+
+.sidebar-toggle.active {
+    background: var(--accent);
+    color: var(--primary);
+    border-color: var(--primary);
+}
+
+.sidebar-toggle .badge {
+    background: var(--danger);
+    color: white;
+    border-radius: 12px;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    min-width: 20px;
+    text-align: center;
+    writing-mode: horizontal-tb;
+}
+
+/* Hide when sidebar is open */
+.sidebar-toggle.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
