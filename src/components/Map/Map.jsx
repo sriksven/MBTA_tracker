@@ -12,7 +12,7 @@ L.Icon.Default.mergeOptions({
     shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
 })
 
-function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, showLocation, customLocation }) {
+function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, showLocation, customLocation, showBuses }) {
     const mapRef = useRef(null)
     const mapInstanceRef = useRef(null)
     const vehicleMarkersRef = useRef({})
@@ -140,6 +140,39 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
         }
     }, [showLocation, customLocation])
 
+    // Handle Zoom Levels to declutter labels
+    useEffect(() => {
+        if (!mapInstanceRef.current) return
+        const map = mapInstanceRef.current
+
+        const updateZoomClass = () => {
+            const z = map.getZoom()
+            const container = map.getContainer()
+
+            // Reset classes
+            container.classList.remove('zoom-low', 'zoom-mid', 'zoom-high')
+
+            if (z < 12.5) {
+                // Low zoom: Lines only (City view)
+                container.classList.add('zoom-low')
+            } else if (z < 14) {
+                // Mid zoom: Lines + Stops (Neighborhood view)
+                container.classList.add('zoom-mid')
+            } else {
+                // High zoom: Everything (Vehicle markers & Names visible sooner)
+                container.classList.add('zoom-high')
+            }
+        }
+
+        map.on('zoomend', updateZoomClass)
+        // Set initial state
+        updateZoomClass()
+
+        return () => {
+            map.off('zoomend', updateZoomClass)
+        }
+    }, [loading])
+
     // Helper: Calculate walking time (approximate backup)
     const getHaversineWalkInfo = (start, endLat, endLng) => {
         if (!start) return null
@@ -190,8 +223,8 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
             routeData.polylines.forEach(coordinates => {
                 const polyline = L.polyline(coordinates, {
                     color: routeData.color,
-                    weight: 5,
-                    opacity: 0.7,
+                    weight: 2,
+                    opacity: 0.8,
                     smoothFactor: 1,
                 })
                 layerGroup.addLayer(polyline)
@@ -212,40 +245,47 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
                 className: 'custom-stop-marker',
                 html: `
           <div style="
-            width: 14px;
-            height: 14px;
+            width: 12px;
+            height: 12px;
             background: white;
-            border: 3px solid #333;
+            border: 2px solid #333;
             border-radius: 50%;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.4);
             cursor: pointer;
             transition: transform 0.2s ease;
           "></div>
         `,
-                iconSize: [14, 14],
-                iconAnchor: [7, 7],
+                iconSize: [12, 12],
+                iconAnchor: [6, 6],
             })
 
             const marker = L.marker([stop.latitude, stop.longitude], { icon }).addTo(mapInstanceRef.current)
 
             const baseContent = `
-                <div class="popup-content">
-                  <div class="popup-title">${stop.name}</div>
-                  <div class="popup-info">
-                    <strong>Type:</strong> ${stop.type}<br>
-                    ${stop.description ? `<strong>Description:</strong> ${stop.description}<br>` : ''}
-                    ${stop.wheelchairAccessible ? '<strong>♿ Wheelchair Accessible</strong>' : ''}
+                <div class="popup-content" style="padding: 2px;">
+                  <div class="popup-title" style="font-size: 11px; margin-bottom: 1px; line-height: 1.1;">${stop.name}</div>
+                  <div class="popup-info" style="font-size: 9px; line-height: 1.1; color: #cbd5e0;">
+                    ${stop.type}
+                    ${stop.wheelchairAccessible ? '<span style="margin-left: 4px">♿</span>' : ''}
                   </div>
-                  <div id="predictions-${stop.id}" class="popup-predictions">
-                    <div class="loading-predictions">Verifying schedule...</div>
+                  <div id="predictions-${stop.id}" class="popup-predictions" style="margin-top: 3px; padding-top: 3px; border-top: 1px solid rgba(255,255,255,0.1); min-width: 140px;">
+                    <div class="loading-predictions" style="font-size: 9px;">Loading...</div>
                   </div>
                 </div>
             `
 
-            marker.bindPopup(baseContent, { minWidth: 220 })
+            marker.bindPopup(baseContent, { minWidth: 170 })
 
             marker.on('popupopen', async () => {
-                const resultsContainer = document.getElementById(`predictions-${stop.id}`)
+                // Wait for DOM to completely render
+                await new Promise(resolve => setTimeout(resolve, 50))
+
+                let resultsContainer = document.getElementById(`predictions-${stop.id}`)
+                if (!resultsContainer) {
+                    await new Promise(resolve => setTimeout(resolve, 100))
+                    resultsContainer = document.getElementById(`predictions-${stop.id}`)
+                }
+
                 if (!resultsContainer) return
 
                 resultsContainer.innerHTML = '<div class="loading-predictions">Calculating best route & schedule...</div>'
@@ -266,7 +306,7 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
                 if (walkInfo) {
                     const walkLabel = walkInfo.isReal ? 'Fastest Walk' : 'Est. Walk'
                     walkHtml = `
-                        <div class="walk-info" style="margin-bottom: 8px; font-size: 0.9em; display: flex; align-items: center; gap: 6px; color: #4a5568; background: #f7fafc; padding: 4px 8px; border-radius: 4px;">
+                        <div class="walk-info" style="margin-bottom: 3px; font-size: 8px; display: flex; align-items: center; gap: 4px; color: #4a5568; background: #f7fafc; padding: 1px 4px; border-radius: 3px;">
                             <span>🚶</span> <strong>${walkInfo.minutes} min</strong> <span style="color: #718096">(${walkInfo.distance} km) - ${walkLabel}</span>
                         </div>
                     `
@@ -274,6 +314,9 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
 
                 const byDirection = {}
                 predictions.forEach(p => {
+                    // Filter out buses if showBuses is false
+                    if (!showBuses && p.route?.type === 3) return
+
                     const time = new Date(p.arrivalTime || p.departureTime)
                     const diffMs = time - now
                     const diffMins = Math.floor(diffMs / 60000)
@@ -326,9 +369,9 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
                                 statusText = `Start walking NOW!`
                             }
 
-                            statusHtml = `<div style="font-size: 0.75em; color: ${statusColor}; font-weight: 700; margin-top: 2px;">${statusText}</div>`
+                            statusHtml = `<div style="font-size: 7px; color: ${statusColor}; font-weight: 700; margin-top: 0px;">${statusText}</div>`
                         } else {
-                            statusHtml = `<div style="font-size: 0.75em; color: #718096; margin-top: 2px;">${p.status || 'Scheduled'}</div>`
+                            statusHtml = `<div style="font-size: 7px; color: #718096; margin-top: 0px;">${p.status || 'Scheduled'}</div>`
                         }
 
                         return `
@@ -360,8 +403,13 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
                 direction: 'top',
                 offset: [0, -6],
                 className: 'stop-label-tooltip',
-                opacity: 0.9
+                opacity: 0.9,
+                interactive: true
             })
+
+            // Ensure clicking the label opens the popup
+            const tooltip = marker.getTooltip()
+            if (tooltip) tooltip.on('click', () => marker.openPopup())
 
             stopMarkersRef.current[stop.id] = marker
         })
@@ -387,26 +435,52 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
             if (existingMarker) {
                 existingMarker.setLatLng([vehicle.latitude, vehicle.longitude])
                 existingMarker.setZIndexOffset(vehicle.id === followedVehicleId ? 2000 : 1000)
-            } else {
-                const icon = L.divIcon({
-                    className: 'custom-vehicle-marker',
-                    html: `
+                // If the bearing changes, we need to update the icon
+                const currentIconHtml = existingMarker.options.icon.options.html;
+                const newIconHtml = `
             <div class="vehicle-marker-inner" style="
-              width: 30px;
-              height: 30px;
+              width: 24px;
+              height: 24px;
               transform: rotate(${vehicle.bearing || 0}deg);
               display: flex;
               align-items: center;
               justify-content: center;
               filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
             ">
-              <svg width="30" height="30" viewBox="0 0 24 24">
+              <svg width="24" height="24" viewBox="0 0 24 24">
+                <path d="M12 2L3 22L12 17L21 22L12 2Z" fill="white" stroke="${routeColor}" stroke-width="2" stroke-linejoin="round"/>
+              </svg>
+            </div>
+          `;
+                if (currentIconHtml !== newIconHtml) {
+                    const newIcon = L.divIcon({
+                        className: 'custom-vehicle-marker',
+                        html: newIconHtml,
+                        iconSize: [24, 24],
+                        iconAnchor: [12, 12],
+                    });
+                    existingMarker.setIcon(newIcon);
+                }
+            } else {
+                const icon = L.divIcon({
+                    className: 'custom-vehicle-marker',
+                    html: `
+            <div class="vehicle-marker-inner" style="
+              width: 24px;
+              height: 24px;
+              transform: rotate(${vehicle.bearing || 0}deg);
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+            ">
+              <svg width="24" height="24" viewBox="0 0 24 24">
                 <path d="M12 2L3 22L12 17L21 22L12 2Z" fill="white" stroke="${routeColor}" stroke-width="2" stroke-linejoin="round"/>
               </svg>
             </div>
           `,
-                    iconSize: [30, 30],
-                    iconAnchor: [15, 15],
+                    iconSize: [24, 24],
+                    iconAnchor: [12, 12],
                 })
 
                 const marker = L.marker([vehicle.latitude, vehicle.longitude], {

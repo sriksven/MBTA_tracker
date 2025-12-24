@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Header from './components/Header/Header'
 import Map from './components/Map/Map'
 import RouteSelector from './components/RouteSelector/RouteSelector'
@@ -14,12 +14,18 @@ function App() {
     const [routes, setRoutes] = useState([])
     const [selectedRoutes, setSelectedRoutes] = useState(new Set())
     const [routeLines, setRouteLines] = useState({})
+
+    // UI State
     const [showRouteSelector, setShowRouteSelector] = useState(false)
     const [showAlertsSidebar, setShowAlertsSidebar] = useState(false)
     const [isLocationEnabled, setIsLocationEnabled] = useState(true)
-    const [customLocation, setCustomLocation] = useState(null) // New: Address search result
+    const [customLocation, setCustomLocation] = useState(null)
     const [lastUpdate, setLastUpdate] = useState(null)
     const [loading, setLoading] = useState(true)
+
+    // Filter State
+    const [showTrams, setShowTrams] = useState(true)
+    const [showBuses, setShowBuses] = useState(false)
 
     // Load initial data
     useEffect(() => {
@@ -27,20 +33,23 @@ function App() {
             try {
                 setLoading(true)
 
-                // Load routes
+                // Load routes (Subway + Bus)
                 const routesData = await MBTAService.getRoutes()
                 setRoutes(routesData)
 
-                // Auto-select subway routes
+                // Auto-select subway routes only
                 const subwayRoutes = routesData.filter(r => r.type === 0 || r.type === 1)
                 const selectedIds = new Set(subwayRoutes.map(r => r.id))
                 setSelectedRoutes(selectedIds)
 
-                // Load route shapes
+                // Load route shapes for initially selected routes
                 const shapes = {}
                 for (const route of subwayRoutes) {
                     const shape = await MBTAService.getRouteShape(route.id)
-                    if (shape) shapes[route.id] = shape
+                    if (shape) {
+                        shape.color = route.color // Use route color (includes Bus Yellow fix)
+                        shapes[route.id] = shape
+                    }
                 }
                 setRouteLines(shapes)
 
@@ -58,16 +67,29 @@ function App() {
         loadInitialData()
     }, [])
 
-    // Update stops when selected routes change
+    // Effective routes based on toggles
+    const effectiveSelectedRoutes = useMemo(() => {
+        const effective = new Set()
+        selectedRoutes.forEach(id => {
+            const route = routes.find(r => r.id === id)
+            if (!route) return
+            const isBus = route.type === 3
+            if (isBus && showBuses) effective.add(id)
+            if (!isBus && showTrams) effective.add(id)
+        })
+        return effective
+    }, [selectedRoutes, routes, showTrams, showBuses])
+
+    // Update stops
     useEffect(() => {
         const loadStops = async () => {
-            if (selectedRoutes.size === 0) {
+            if (effectiveSelectedRoutes.size === 0) {
                 setStops([])
                 return
             }
 
             try {
-                const stopsData = await MBTAService.getStopsForRoutes(Array.from(selectedRoutes))
+                const stopsData = await MBTAService.getStopsForRoutes(Array.from(effectiveSelectedRoutes))
                 setStops(stopsData)
             } catch (error) {
                 console.error('Error loading stops:', error)
@@ -75,15 +97,18 @@ function App() {
         }
 
         loadStops()
-    }, [selectedRoutes])
+    }, [effectiveSelectedRoutes])
 
-    // Update vehicles periodically
+    // Update vehicles
     useEffect(() => {
-        if (selectedRoutes.size === 0) return
+        if (effectiveSelectedRoutes.size === 0) {
+            setVehicles([])
+            return
+        }
 
         const updateVehicles = async () => {
             try {
-                const vehiclesData = await MBTAService.getVehicles(Array.from(selectedRoutes))
+                const vehiclesData = await MBTAService.getVehicles(Array.from(effectiveSelectedRoutes))
                 setVehicles(vehiclesData)
                 setLastUpdate(new Date())
             } catch (error) {
@@ -93,14 +118,36 @@ function App() {
 
         updateVehicles()
         const interval = setInterval(updateVehicles, 1000)
-
         return () => clearInterval(interval)
-    }, [selectedRoutes])
+    }, [effectiveSelectedRoutes])
+
+    const handleToggleRoute = async (routeId) => {
+        const newSelected = new Set(selectedRoutes)
+        if (newSelected.has(routeId)) {
+            newSelected.delete(routeId)
+        } else {
+            newSelected.add(routeId)
+            // Lazy load shape if needed
+            if (!routeLines[routeId]) {
+                const shape = await MBTAService.getRouteShape(routeId)
+                if (shape) {
+                    const route = routes.find(r => r.id === routeId)
+                    if (route) shape.color = route.color
+                    setRouteLines(prev => ({ ...prev, [routeId]: shape }))
+                }
+            }
+        }
+        setSelectedRoutes(newSelected)
+    }
 
     const handleRefresh = async () => {
+        // Use effective routes for refresh
+        const visibleRoutesList = Array.from(effectiveSelectedRoutes)
+        if (visibleRoutesList.length === 0) return
+
         try {
             const [vehiclesData, alertsData] = await Promise.all([
-                MBTAService.getVehicles(Array.from(selectedRoutes)),
+                MBTAService.getVehicles(visibleRoutesList),
                 MBTAService.getAlerts()
             ])
             setVehicles(vehiclesData)
@@ -111,19 +158,9 @@ function App() {
         }
     }
 
-    const handleToggleRoute = (routeId) => {
-        const newSelected = new Set(selectedRoutes)
-        if (newSelected.has(routeId)) {
-            newSelected.delete(routeId)
-        } else {
-            newSelected.add(routeId)
-        }
-        setSelectedRoutes(newSelected)
-    }
-
     const handleCustomLocation = (location) => {
         setCustomLocation(location)
-        setIsLocationEnabled(false) // Disable GPS to prevent conflict
+        setIsLocationEnabled(false)
     }
 
     return (
@@ -135,10 +172,44 @@ function App() {
                 isLocationEnabled={isLocationEnabled}
                 onToggleLocation={() => {
                     setIsLocationEnabled(!isLocationEnabled)
-                    if (!isLocationEnabled) setCustomLocation(null) // Reset custom if switching to GPS
+                    if (!isLocationEnabled) setCustomLocation(null)
                 }}
                 onCustomLocation={handleCustomLocation}
             />
+
+            <div className="app-content">
+                <RouteSelector
+                    routes={routes}
+                    selectedRoutes={selectedRoutes}
+                    onToggleRoute={handleToggleRoute}
+                    onRefresh={handleRefresh}
+                    isOpen={showRouteSelector}
+                    onClose={() => setShowRouteSelector(false)}
+                    // Filters
+                    showTrams={showTrams}
+                    setShowTrams={setShowTrams}
+                    showBuses={showBuses}
+                    setShowBuses={setShowBuses}
+                />
+
+                <Map
+                    vehicles={vehicles}
+                    stops={stops}
+                    routeLines={routeLines}
+                    selectedRoutes={effectiveSelectedRoutes}
+                    loading={loading}
+                    onRefresh={handleRefresh}
+                    showLocation={isLocationEnabled}
+                    customLocation={customLocation}
+                    showBuses={showBuses}
+                />
+
+                <AlertsSidebar
+                    alerts={alerts}
+                    isOpen={showAlertsSidebar}
+                    onClose={() => setShowAlertsSidebar(false)}
+                />
+            </div>
 
             <SidebarToggle
                 label="Routes"
@@ -154,34 +225,6 @@ function App() {
                 badge={alerts.length}
                 onClick={() => setShowAlertsSidebar(!showAlertsSidebar)}
             />
-
-            <div className="app-content">
-                <RouteSelector
-                    routes={routes}
-                    selectedRoutes={selectedRoutes}
-                    onToggleRoute={handleToggleRoute}
-                    onRefresh={handleRefresh}
-                    isOpen={showRouteSelector}
-                    onClose={() => setShowRouteSelector(false)}
-                />
-
-                <Map
-                    vehicles={vehicles}
-                    stops={stops}
-                    routeLines={routeLines}
-                    selectedRoutes={selectedRoutes}
-                    loading={loading}
-                    onRefresh={handleRefresh}
-                    showLocation={isLocationEnabled}
-                    customLocation={customLocation}
-                />
-
-                <AlertsSidebar
-                    alerts={alerts}
-                    isOpen={showAlertsSidebar}
-                    onClose={() => setShowAlertsSidebar(false)}
-                />
-            </div>
         </div>
     )
 }

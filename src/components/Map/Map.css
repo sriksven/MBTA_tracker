@@ -68,14 +68,14 @@
 
 .popup-title {
     font-weight: 700;
-    font-size: 1rem;
-    margin-bottom: var(--spacing-sm);
+    font-size: 13px;
+    margin-bottom: 4px;
     color: var(--accent);
 }
 
 .popup-info {
-    font-size: 0.875rem;
-    line-height: 1.6;
+    font-size: 12px;
+    line-height: 1.5;
 }
 
 .popup-info strong {
@@ -134,21 +134,44 @@
 }
 
 /* Stop Label Tooltip */
+/* Stop Label Tooltip */
 .stop-label-tooltip {
     background: rgba(10, 14, 39, 0.8) !important;
     border: 1px solid rgba(255, 255, 255, 0.2) !important;
     color: var(--text-primary) !important;
-    font-size: 0.7rem;
-    padding: 2px 6px !important;
+    font-size: 9px;
+    font-weight: normal;
+    padding: 0 4px !important;
     border-radius: 4px !important;
     box-shadow: none !important;
+    text-shadow: none !important;
     white-space: nowrap;
+    margin-top: 0;
+    transition: font-size 0.3s ease, padding 0.3s ease, opacity 0.3s ease;
 }
 
 .stop-label-tooltip::before {
     display: none !important;
-    /* Hide the little arrow pointer */
 }
+
+/* Zoom Logic: Low (Lines only) */
+.zoom-low .custom-stop-marker,
+.zoom-low .custom-vehicle-marker,
+.zoom-low .stop-label-tooltip {
+    display: none !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+/* Zoom Logic: Mid (Stops Only - No Labels, No Vehicles) */
+.zoom-mid .custom-vehicle-marker,
+.zoom-mid .stop-label-tooltip {
+    display: none !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+/* Zoom Logic: High (Normal Labels - Default styles apply) */
 
 /* User Location Marker */
 .user-location-marker {
@@ -222,12 +245,12 @@
 }
 
 .direction-header {
-    font-size: 0.75rem;
+    font-size: 10px;
     text-transform: uppercase;
     color: #a0aec0;
     font-weight: 700;
-    margin-top: 12px;
-    margin-bottom: 4px;
+    margin-top: 8px;
+    margin-bottom: 2px;
     letter-spacing: 0.05em;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     padding-bottom: 2px;
@@ -236,13 +259,13 @@
 .prediction-row {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 8px;
+    gap: 5px;
+    padding: 3px 5px;
     background: rgba(0, 0, 0, 0.03);
-    border-radius: 4px;
-    margin-bottom: 4px;
-    border-left-width: 4px !important;
-    /* Force width from inline style */
+    border-radius: 3px;
+    margin-bottom: 2px;
+    border-left-width: 2px !important;
+    /* Thinner accent line */
 }
 
 .prediction-row:last-child {
@@ -250,17 +273,17 @@
 }
 
 .pred-route-badge {
-    font-size: 0.75rem;
+    font-size: 10px;
     font-weight: 700;
-    padding: 2px 6px;
-    border-radius: 4px;
-    min-width: 24px;
+    padding: 1px 4px;
+    border-radius: 3px;
+    min-width: 18px;
     text-align: center;
 }
 
 .pred-dest {
     flex: 1;
-    font-size: 0.85rem;
+    font-size: 9px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -269,7 +292,7 @@
 }
 
 .pred-time {
-    font-size: 0.9rem;
+    font-size: 10px;
     font-weight: 700;
     color: #ffffff;
 }

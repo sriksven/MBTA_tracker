@@ -6,27 +6,30 @@
     border: 2px solid var(--accent);
     color: white;
     padding: var(--spacing-md) var(--spacing-sm);
-    border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
     cursor: pointer;
     font-weight: 700;
     font-size: 0.875rem;
     transition: all var(--transition-base);
-    z-index: var(--z-fixed);
+    z-index: 99999 !important;
+    /* Force high z-index */
     writing-mode: vertical-rl;
     text-orientation: mixed;
     box-shadow: var(--shadow-lg);
     display: flex;
     align-items: center;
     gap: var(--spacing-xs);
+    pointer-events: auto !important;
 }
 
 .sidebar-toggle.left {
-    left: 0;
+    left: 0 !important;
     border-left: none;
+    border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
 }
 
 .sidebar-toggle.right {
-    right: 0;
+    right: 0 !important;
+    left: auto !important;
     border-right: none;
     border-radius: var(--radius-lg) 0 0 var(--radius-lg);
 }
@@ -34,12 +37,6 @@
 .sidebar-toggle:hover {
     background: var(--primary-dark);
     transform: translateY(-50%) scale(1.05);
-}
-
-.sidebar-toggle.active {
-    background: var(--accent);
-    color: var(--primary);
-    border-color: var(--primary);
 }
 
 .sidebar-toggle .badge {

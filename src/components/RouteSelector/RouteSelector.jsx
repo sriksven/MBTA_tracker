@@ -1,9 +1,34 @@
 import './RouteSelector.css'
 
-function RouteSelector({ routes, selectedRoutes, onToggleRoute, onRefresh, isOpen, onClose }) {
+function RouteSelector({
+    routes,
+    selectedRoutes,
+    onToggleRoute,
+    onRefresh,
+    isOpen,
+    onClose,
+    showTrams,
+    setShowTrams,
+    showBuses,
+    setShowBuses
+}) {
     const handleToggle = (routeId) => {
         onToggleRoute(routeId)
     }
+
+    // Filter routes for display list based on toggles as well?
+    // User said "keep only buses and keep only trams" filter.
+    // If I uncheck "Trams", should they disappear from the LIST?
+    // "when either is togglrd off the lines and stops for that specific filter should turn off"
+    // It doesn't explicitly say they should disappear from the LIST, but it's good UX.
+    // If they disappear from list, how do I re-enable them? 
+    // Ah, the filter acts as a "View Filter". So yes, list should probably filter too, or at least be grouped?
+    // I'll filter the list too.
+
+    const visibleRoutes = routes.filter(r => {
+        if (r.type === 3) return showBuses
+        return showTrams // 0 or 1
+    })
 
     return (
         <aside className={`route-selector ${isOpen ? '' : 'collapsed'}`}>
@@ -23,8 +48,35 @@ function RouteSelector({ routes, selectedRoutes, onToggleRoute, onRefresh, isOpe
                 </div>
             </div>
 
+            <div className="type-filters">
+                <div className="filter-toggle">
+                    <span className="filter-label">🚆 Trams & Subways</span>
+                    <label className="switch">
+                        <input
+                            type="checkbox"
+                            checked={showTrams}
+                            onChange={(e) => setShowTrams(e.target.checked)}
+                        />
+                        <span className="slider round"></span>
+                    </label>
+                </div>
+                <div className="filter-toggle">
+                    <span className="filter-label">🚌 Buses</span>
+                    <label className="switch">
+                        <input
+                            type="checkbox"
+                            checked={showBuses}
+                            onChange={(e) => setShowBuses(e.target.checked)}
+                        />
+                        <span className="slider round"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div className="filter-divider-line"></div>
+
             <div className="route-list">
-                {routes.map(route => (
+                {visibleRoutes.map(route => (
                     <button
                         key={route.id}
                         className={`route-item ${selectedRoutes.has(route.id) ? 'active' : ''}`}
@@ -39,6 +91,9 @@ function RouteSelector({ routes, selectedRoutes, onToggleRoute, onRefresh, isOpe
                         <div className="route-name">{route.name}</div>
                     </button>
                 ))}
+                {visibleRoutes.length === 0 && (
+                    <div className="no-routes-msg">Enable filters to see routes</div>
+                )}
             </div>
         </aside>
     )

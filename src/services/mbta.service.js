@@ -49,7 +49,7 @@ export const MBTAService = {
     // Get all routes
     async getRoutes() {
         try {
-            const response = await fetch(`${MBTA_API_BASE}/routes?filter[type]=0,1&api_key=${MBTA_API_KEY}`)
+            const response = await fetch(`${MBTA_API_BASE}/routes?filter[type]=0,1,3&api_key=${MBTA_API_KEY}`)
             const data = await response.json()
 
             return data.data.map(route => ({
@@ -57,7 +57,7 @@ export const MBTAService = {
                 name: route.attributes.long_name,
                 shortName: route.attributes.short_name,
                 type: route.attributes.type,
-                color: ROUTE_COLORS[route.id] || route.attributes.color || '#666666'
+                color: route.attributes.type === 3 ? '#FFC72C' : (ROUTE_COLORS[route.id] || route.attributes.color || '#666666')
             }))
         } catch (error) {
             console.error('Error fetching routes:', error)

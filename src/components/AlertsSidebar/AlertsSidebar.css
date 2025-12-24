@@ -1,6 +1,6 @@
 .alerts-sidebar {
-    width: 350px;
-    min-width: 350px;
+    width: 280px;
+    min-width: 280px;
     background: var(--bg-secondary);
     border-left: 1px solid var(--border-color);
     display: flex;
@@ -9,7 +9,7 @@
     box-shadow: var(--shadow-lg);
     transition: width var(--transition-base), min-width var(--transition-base);
     position: relative;
-    z-index: var(--z-fixed);
+    z-index: 9999;
 }
 
 .alerts-sidebar.collapsed {
