@@ -86,7 +86,6 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
                 watchIdRef.current = null
             }
 
-            // Remove existing marker to recreate (in case it was GPS style)
             if (userMarkerRef.current) {
                 mapInstanceRef.current.removeLayer(userMarkerRef.current)
             }
@@ -99,9 +98,7 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
             mapInstanceRef.current.flyTo([customLocation.lat, customLocation.lng], 15)
 
         } else if (showLocation) {
-            // GPS Active
             if (!userLocationCoords.current && userMarkerRef.current) {
-                // If we already have a marker but coords ref was null (rare), clear it
                 mapInstanceRef.current.removeLayer(userMarkerRef.current)
                 userMarkerRef.current = null
             }
@@ -117,10 +114,6 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
                             userMarkerRef.current = createMarker(latitude, longitude, false)
                             mapInstanceRef.current.flyTo(latlng, 15)
                         } else {
-                            // Ideally check if we need to swap icon (if switching back from custom without umount)
-                            // But usually we set customLocation=null, so effect re-runs.
-                            // If userMarker exists and isCustom, we should swap. 
-                            // Simplest is to remove if class doesn't match, but here we can assume standard usage.
                             userMarkerRef.current.setLatLng(latlng)
                         }
                     },
@@ -129,7 +122,6 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
                 )
             }
         } else {
-            // Cleanup
             userLocationCoords.current = null
             if (watchIdRef.current !== null) {
                 navigator.geolocation.clearWatch(watchIdRef.current)
@@ -148,12 +140,10 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
         }
     }, [showLocation, customLocation])
 
-    // Helper: Calculate walking time (approximate)
-    const getWalkInfo = (start, endLat, endLng) => {
+    // Helper: Calculate walking time (approximate backup)
+    const getHaversineWalkInfo = (start, endLat, endLng) => {
         if (!start) return null
-
-        // Haversine distance
-        const R = 6371 // Radius of earth in km
+        const R = 6371
         const dLat = (endLat - start.latitude) * (Math.PI / 180)
         const dLon = (endLng - start.longitude) * (Math.PI / 180)
         const a =
@@ -161,36 +151,42 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
             Math.cos(start.latitude * (Math.PI / 180)) * Math.cos(endLat * (Math.PI / 180)) *
             Math.sin(dLon / 2) * Math.sin(dLon / 2)
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-        const d = R * c // Distance in km
-
-        // Tortuosity factor (roads aren't straight lines) ~ 1.3
+        const d = R * c
         const realDistance = d * 1.3
-
-        // Walking speed ~ 5 km/h (approx 12 min/km)
         const walkingMinutes = Math.ceil(realDistance * 12)
-
-        return {
-            distance: realDistance.toFixed(2), // km
-            minutes: walkingMinutes
-        }
+        return { distance: realDistance.toFixed(2), minutes: walkingMinutes }
     }
 
-    // Update route lines (always show for selected routes)
+    // Helper: Fetch OSRM Real Walking Time
+    const getRealWalkInfo = async (start, endLat, endLng) => {
+        if (!start) return null
+        try {
+            const url = `https://router.project-osrm.org/route/v1/foot/${start.longitude},${start.latitude};${endLng},${endLat}?overview=false`
+            const res = await fetch(url)
+            const data = await res.json()
+            if (data.code === 'Ok' && data.routes.length > 0) {
+                const durationSec = data.routes[0].duration
+                const distMeters = data.routes[0].distance
+                return {
+                    minutes: Math.ceil(durationSec / 60),
+                    distance: (distMeters / 1000).toFixed(2),
+                    isReal: true
+                }
+            }
+        } catch (e) {
+            console.warn("OSRM routing failed, falling back to Haversine", e)
+        }
+        return getHaversineWalkInfo(start, endLat, endLng)
+    }
+
+    // Update route lines
     useEffect(() => {
         if (!mapInstanceRef.current) return
-
-        // Remove old route lines
-        Object.values(routeLinesRef.current).forEach(layerGroup => {
-            mapInstanceRef.current.removeLayer(layerGroup)
-        })
+        Object.values(routeLinesRef.current).forEach(layerGroup => mapInstanceRef.current.removeLayer(layerGroup))
         routeLinesRef.current = {}
-
-        // Add route lines for selected routes
         Object.entries(routeLines).forEach(([routeId, routeData]) => {
             if (!selectedRoutes.has(routeId)) return
-
             const layerGroup = L.layerGroup().addTo(mapInstanceRef.current)
-
             routeData.polylines.forEach(coordinates => {
                 const polyline = L.polyline(coordinates, {
                     color: routeData.color,
@@ -200,22 +196,17 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
                 })
                 layerGroup.addLayer(polyline)
             })
-
             routeLinesRef.current[routeId] = layerGroup
         })
     }, [routeLines, selectedRoutes])
 
-    // Update stop markers (already filtered by selected routes in App.jsx)
+    // Update stop markers
     useEffect(() => {
         if (!mapInstanceRef.current) return
 
-        // Remove old stop markers
-        Object.values(stopMarkersRef.current).forEach(marker => {
-            mapInstanceRef.current.removeLayer(marker)
-        })
+        Object.values(stopMarkersRef.current).forEach(marker => mapInstanceRef.current.removeLayer(marker))
         stopMarkersRef.current = {}
 
-        // Add stop markers
         stops.forEach(stop => {
             const icon = L.divIcon({
                 className: 'custom-stop-marker',
@@ -235,11 +226,8 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
                 iconAnchor: [7, 7],
             })
 
-            const marker = L.marker([stop.latitude, stop.longitude], { icon }).addTo(
-                mapInstanceRef.current
-            )
+            const marker = L.marker([stop.latitude, stop.longitude], { icon }).addTo(mapInstanceRef.current)
 
-            // Initial static content
             const baseContent = `
                 <div class="popup-content">
                   <div class="popup-title">${stop.name}</div>
@@ -256,28 +244,30 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
 
             marker.bindPopup(baseContent, { minWidth: 220 })
 
-            // Fetch predictions on open
             marker.on('popupopen', async () => {
                 const resultsContainer = document.getElementById(`predictions-${stop.id}`)
                 if (!resultsContainer) return
 
-                // Fetch
-                const predictions = await MBTAService.getPredictions(stop.id)
+                resultsContainer.innerHTML = '<div class="loading-predictions">Calculating best route & schedule...</div>'
+
+                // Parallel Fetch: Predictions + Real Walk Time
+                const now = new Date()
+                const [predictions, walkInfo] = await Promise.all([
+                    MBTAService.getPredictions(stop.id),
+                    getRealWalkInfo(userLocationCoords.current, stop.latitude, stop.longitude)
+                ])
 
                 if (predictions.length === 0) {
                     resultsContainer.innerHTML = '<div class="no-predictions">No upcoming arrivals</div>'
                     return
                 }
 
-                // Smart Commute Info
-                const now = new Date()
                 let walkHtml = ''
-                const walkInfo = getWalkInfo(userLocationCoords.current, stop.latitude, stop.longitude)
-
                 if (walkInfo) {
+                    const walkLabel = walkInfo.isReal ? 'Fastest Walk' : 'Est. Walk'
                     walkHtml = `
                         <div class="walk-info" style="margin-bottom: 8px; font-size: 0.9em; display: flex; align-items: center; gap: 6px; color: #4a5568; background: #f7fafc; padding: 4px 8px; border-radius: 4px;">
-                            <span>🚶</span> <strong>${walkInfo.minutes} min walk</strong> <span style="color: #718096">(${walkInfo.distance} km)</span>
+                            <span>🚶</span> <strong>${walkInfo.minutes} min</strong> <span style="color: #718096">(${walkInfo.distance} km) - ${walkLabel}</span>
                         </div>
                     `
                 }
@@ -290,7 +280,6 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
 
                     if (walkInfo) {
                         const spareTime = diffMins - walkInfo.minutes
-                        // Hide missed connections (Late by > 2 mins)
                         if (spareTime < -2) return
                     }
 
@@ -304,7 +293,7 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
                     const route = preds[0].route
                     const dirName = route?.directionNames?.[dirId] || (dirId == 0 ? 'Outbound' : 'Inbound')
 
-                    // Limit: 2 per unique headsign (destination) as requested ("2 for each last stops")
+                    // Limit logic
                     const byHeadsign = {}
                     preds.forEach(p => {
                         if (!byHeadsign[p.headsign]) byHeadsign[p.headsign] = []
@@ -384,7 +373,6 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
 
         const activeVehicleIds = new Set(vehicles.map(v => v.id))
 
-        // Remove vehicles that are no longer active
         Object.keys(vehicleMarkersRef.current).forEach(vehicleId => {
             if (!activeVehicleIds.has(vehicleId)) {
                 mapInstanceRef.current.removeLayer(vehicleMarkersRef.current[vehicleId])
@@ -392,17 +380,14 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
             }
         })
 
-        // Add or update vehicle markers
         vehicles.forEach(vehicle => {
             const existingMarker = vehicleMarkersRef.current[vehicle.id]
             const routeColor = vehicle.route?.color || '#4299e1'
 
             if (existingMarker) {
-                // Update existing marker
                 existingMarker.setLatLng([vehicle.latitude, vehicle.longitude])
                 existingMarker.setZIndexOffset(vehicle.id === followedVehicleId ? 2000 : 1000)
             } else {
-                // Create new marker
                 const icon = L.divIcon({
                     className: 'custom-vehicle-marker',
                     html: `
@@ -426,7 +411,7 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
 
                 const marker = L.marker([vehicle.latitude, vehicle.longitude], {
                     icon,
-                    zIndexOffset: 1000 // Ensure vehicles are always on top of stops
+                    zIndexOffset: 1000
                 }).addTo(mapInstanceRef.current)
 
                 const popupContent = `
@@ -446,7 +431,6 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
 
                 marker.bindPopup(popupContent)
 
-                // Click to follow
                 marker.on('click', () => {
                     setFollowedVehicleId(vehicle.id)
                 })
@@ -456,7 +440,6 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
         })
     }, [vehicles, followedVehicleId])
 
-    // Effect to pan map when following a vehicle
     useEffect(() => {
         if (!mapInstanceRef.current || !followedVehicleId) return
 
@@ -464,7 +447,7 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
         if (vehicle) {
             mapInstanceRef.current.panTo([vehicle.latitude, vehicle.longitude], {
                 animate: true,
-                duration: 1.0 // Smooth follow
+                duration: 1.0
             })
         }
     }, [vehicles, followedVehicleId])

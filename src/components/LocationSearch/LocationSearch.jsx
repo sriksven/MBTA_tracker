@@ -29,10 +29,12 @@ function LocationSearch({ onLocationSelect }) {
 
             setLoading(true)
             try {
-                // Bounds for Greater Boston approx
-                const viewbox = '-71.1912,42.2279,-70.9228,42.4368'
+                // Photon API (Komoot) - Excellent for autocomplete and fuzzy search
+                // Bias towards Boston (approx center params)
+                const lat = 42.3601
+                const lon = -71.0589
                 const response = await fetch(
-                    `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&viewbox=${viewbox}&bounded=1&limit=5`,
+                    `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&lat=${lat}&lon=${lon}&limit=5`,
                     {
                         headers: {
                             'User-Agent': 'MBTA-Live-Tracker/1.0'
@@ -40,7 +42,8 @@ function LocationSearch({ onLocationSelect }) {
                     }
                 )
                 const data = await response.json()
-                setResults(data)
+                // Photon returns GeoJSON features
+                setResults(data.features)
                 setIsOpen(true)
             } catch (err) {
                 console.error("Geocoding error:", err)
@@ -52,14 +55,24 @@ function LocationSearch({ onLocationSelect }) {
         return () => clearTimeout(timer)
     }, [query])
 
-    const handleSelect = (result) => {
-        setQuery(result.display_name.split(',')[0]) // Keep short name
+    const handleSelect = (feature) => {
+        const props = feature.properties
+        const name = props.name || `${props.housenumber || ''} ${props.street || ''}`.trim() || feature.properties.formatted
+        const coords = feature.geometry.coordinates
+
+        setQuery(name)
         setIsOpen(false)
         onLocationSelect({
-            lat: parseFloat(result.lat),
-            lng: parseFloat(result.lon),
-            label: result.display_name
+            lat: coords[1], // GeoJSON is [lon, lat]
+            lng: coords[0],
+            label: `${name}, ${props.city || ''}, ${props.state || 'MA'}`
         })
+    }
+
+    const getDisplayName = (props) => {
+        const title = props.name || `${props.housenumber || ''} ${props.street || ''}`.trim()
+        const subtitle = [props.city, props.state, props.postcode].filter(Boolean).join(', ')
+        return { title, subtitle }
     }
 
     return (
@@ -71,7 +84,7 @@ function LocationSearch({ onLocationSelect }) {
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     onFocus={() => query.length >= 3 && setIsOpen(true)}
-                    placeholder="Check for friend (Enter address)..."
+                    placeholder="Search address (Open Source)..."
                     aria-label="Search location"
                 />
                 {loading && <div className="search-spinner"></div>}
@@ -79,14 +92,15 @@ function LocationSearch({ onLocationSelect }) {
 
             {isOpen && results.length > 0 && (
                 <ul className="search-results">
-                    {results.map((result) => (
-                        <li key={result.place_id} onClick={() => handleSelect(result)}>
-                            <div className="result-name">{result.display_name.split(',')[0]}</div>
-                            <div className="result-detail">
-                                {result.display_name.split(',').slice(1).join(',')}
-                            </div>
-                        </li>
-                    ))}
+                    {results.map((feature, index) => {
+                        const { title, subtitle } = getDisplayName(feature.properties)
+                        return (
+                            <li key={index} onClick={() => handleSelect(feature)}>
+                                <div className="result-name">{title}</div>
+                                <div className="result-detail">{subtitle}</div>
+                            </li>
+                        )
+                    })}
                 </ul>
             )}
         </div>
