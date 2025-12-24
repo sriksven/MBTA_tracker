@@ -212,6 +212,18 @@
     padding: 4px 0;
 }
 
+.direction-header {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    color: #a0aec0;
+    font-weight: 700;
+    margin-top: 12px;
+    margin-bottom: 4px;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 2px;
+}
+
 .prediction-row {
     display: flex;
     align-items: center;
@@ -244,14 +256,13 @@
     overflow: hidden;
     text-overflow: ellipsis;
     font-weight: 500;
-    color: #333;
-    /* Dark text for readability in light popup */
+    color: #ffffff;
 }
 
 .pred-time {
     font-size: 0.9rem;
     font-weight: 700;
-    color: #1a202c;
+    color: #ffffff;
 }
 
 /* Leaflet Popup Override */

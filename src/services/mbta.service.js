@@ -199,7 +199,7 @@ export const MBTAService = {
     async getPredictions(stopId) {
         try {
             const response = await fetch(
-                `${MBTA_API_BASE}/predictions?filter[stop]=${stopId}&include=route,trip&sort=arrival_time&page[limit]=5&api_key=${MBTA_API_KEY}`
+                `${MBTA_API_BASE}/predictions?filter[stop]=${stopId}&include=route,trip&sort=arrival_time&page[limit]=20&api_key=${MBTA_API_KEY}`
             )
             const data = await response.json()
 
@@ -220,7 +220,8 @@ export const MBTAService = {
                         shortName: route.attributes.short_name,
                         longName: route.attributes.long_name,
                         color: ROUTE_COLORS[route.id] || route.attributes.color || '#666666',
-                        textColor: route.attributes.text_color || '000000'
+                        textColor: route.attributes.text_color || '000000',
+                        directionNames: route.attributes.direction_names || ['Outbound', 'Inbound']
                     } : null,
                     headsign: trip?.attributes?.headsign || 'Unknown Destination'
                 }

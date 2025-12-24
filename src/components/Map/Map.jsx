@@ -252,47 +252,88 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
                     `
                 }
 
-                const html = predictions.map(p => {
+                const byDirection = {}
+                predictions.forEach(p => {
                     const time = new Date(p.arrivalTime || p.departureTime)
                     const diffMs = time - now
                     const diffMins = Math.floor(diffMs / 60000)
-                    const timeString = diffMins <= 0 ? 'Now' : `${diffMins} min`
-                    const routeColor = p.route?.color ? `#${p.route.color}` : '#666'
 
-                    let statusHtml = ''
                     if (walkInfo) {
                         const spareTime = diffMins - walkInfo.minutes
-                        let statusColor = '#38a169' // Green
-                        let statusText = `Leave in ${spareTime} min`
-
-                        if (spareTime < -2) {
-                            statusColor = '#e53e3e' // Red
-                            statusText = `Late by ${Math.abs(spareTime)} min`
-                        } else if (spareTime <= 1) {
-                            statusColor = '#d69e2e' // Orange
-                            statusText = `Leave NOW!`
-                        }
-
-                        statusHtml = `<div style="font-size: 0.75em; color: ${statusColor}; font-weight: 700; margin-top: 2px;">${statusText}</div>`
-                    } else {
-                        statusHtml = `<div style="font-size: 0.75em; color: #718096; margin-top: 2px;">${p.status || 'Scheduled'}</div>`
+                        // Hide missed connections (Late by > 2 mins)
+                        if (spareTime < -2) return
                     }
 
-                    return `
-                        <div class="prediction-row" style="border-left: 3px solid ${routeColor}; flex-direction: column; align-items: stretch; gap: 0; padding-bottom: 8px;">
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                <div class="pred-route-badge" style="background: ${routeColor}; color: #${p.route?.textColor || 'ffffff'}">${p.route?.shortName || ''}</div>
-                                <div class="pred-dest">${p.headsign}</div>
-                                <div class="pred-time" style="margin-left: auto;">${timeString}</div>
+                    const dirId = p.directionId ?? 0
+                    if (!byDirection[dirId]) byDirection[dirId] = []
+                    byDirection[dirId].push(p)
+                })
+
+                const html = Object.keys(byDirection).sort().map(dirId => {
+                    const preds = byDirection[dirId]
+                    const route = preds[0].route
+                    const dirName = route?.directionNames?.[dirId] || (dirId == 0 ? 'Outbound' : 'Inbound')
+
+                    // Limit: 2 per unique headsign (destination) as requested ("2 for each last stops")
+                    const byHeadsign = {}
+                    preds.forEach(p => {
+                        if (!byHeadsign[p.headsign]) byHeadsign[p.headsign] = []
+                        if (byHeadsign[p.headsign].length < 2) {
+                            byHeadsign[p.headsign].push(p)
+                        }
+                    })
+
+                    const subset = Object.values(byHeadsign).flat().sort((a, b) => {
+                        const tA = new Date(a.arrivalTime || a.departureTime)
+                        const tB = new Date(b.arrivalTime || b.departureTime)
+                        return tA - tB
+                    })
+
+                    const rows = subset.map(p => {
+                        const time = new Date(p.arrivalTime || p.departureTime)
+                        const diffMs = time - now
+                        const diffMins = Math.floor(diffMs / 60000)
+                        const timeString = diffMins <= 0 ? 'Now' : `${diffMins} min`
+                        const routeColor = p.route?.color ? `#${p.route.color}` : '#666'
+
+                        let statusHtml = ''
+                        if (walkInfo) {
+                            const spareTime = diffMins - walkInfo.minutes
+                            let statusColor = '#38a169' // Green
+                            let statusText = `Leave in ${spareTime} min`
+
+                            if (spareTime <= 1) {
+                                statusColor = '#d69e2e' // Orange
+                                statusText = `Leave NOW!`
+                            }
+
+                            statusHtml = `<div style="font-size: 0.75em; color: ${statusColor}; font-weight: 700; margin-top: 2px;">${statusText}</div>`
+                        } else {
+                            statusHtml = `<div style="font-size: 0.75em; color: #718096; margin-top: 2px;">${p.status || 'Scheduled'}</div>`
+                        }
+
+                        return `
+                            <div class="prediction-row" style="border-left: 3px solid ${routeColor}; flex-direction: column; align-items: stretch; gap: 0; padding-bottom: 8px;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <div class="pred-route-badge" style="background: ${routeColor}; color: #${p.route?.textColor || 'ffffff'}">${p.route?.shortName || ''}</div>
+                                    <div class="pred-dest">${p.headsign}</div>
+                                    <div class="pred-time" style="margin-left: auto;">${timeString}</div>
+                                </div>
+                                <div style="display: flex; justify-content: flex-end;">
+                                    ${statusHtml}
+                                </div>
                             </div>
-                            <div style="display: flex; justify-content: flex-end;">
-                                ${statusHtml}
-                            </div>
-                        </div>
-                    `
+                        `
+                    }).join('')
+
+                    return `<div class="direction-header">${dirName}</div>` + rows
                 }).join('')
 
-                resultsContainer.innerHTML = walkHtml + html
+                if (!html) {
+                    resultsContainer.innerHTML = walkHtml + '<div class="no-predictions">No reachable arrivals</div>'
+                } else {
+                    resultsContainer.innerHTML = walkHtml + html
+                }
             })
 
             marker.bindTooltip(stop.name, {
