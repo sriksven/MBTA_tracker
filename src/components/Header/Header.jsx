@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import LocationSearch from '../LocationSearch/LocationSearch'
 import './Header.css'
 
 function Header({
@@ -6,7 +7,8 @@ function Header({
     alertCount,
     lastUpdate,
     isLocationEnabled,
-    onToggleLocation
+    onToggleLocation,
+    onCustomLocation
 }) {
     const [timeString, setTimeString] = useState('--:--:--')
 
@@ -32,6 +34,8 @@ function Header({
                 </div>
 
                 <div className="header-actions">
+                    <LocationSearch onLocationSelect={onCustomLocation} />
+
                     <button
                         className={`location-toggle-btn ${isLocationEnabled ? 'active' : ''}`}
                         onClick={onToggleLocation}

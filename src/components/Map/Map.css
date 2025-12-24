@@ -195,6 +195,15 @@
     }
 }
 
+/* Custom Origin Marker (Green) */
+.user-marker-dot.custom {
+    background-color: #48bb78;
+}
+
+.user-marker-pulse.custom {
+    background-color: rgba(72, 187, 120, 0.4);
+}
+
 /* Prediction Popup Styles */
 .popup-predictions {
     margin-top: 12px;

@@ -17,6 +17,7 @@ function App() {
     const [showRouteSelector, setShowRouteSelector] = useState(false)
     const [showAlertsSidebar, setShowAlertsSidebar] = useState(false)
     const [isLocationEnabled, setIsLocationEnabled] = useState(true)
+    const [customLocation, setCustomLocation] = useState(null) // New: Address search result
     const [lastUpdate, setLastUpdate] = useState(null)
     const [loading, setLoading] = useState(true)
 
@@ -91,7 +92,7 @@ function App() {
         }
 
         updateVehicles()
-        const interval = setInterval(updateVehicles, 1000) // Update every 1 second
+        const interval = setInterval(updateVehicles, 1000)
 
         return () => clearInterval(interval)
     }, [selectedRoutes])
@@ -120,6 +121,11 @@ function App() {
         setSelectedRoutes(newSelected)
     }
 
+    const handleCustomLocation = (location) => {
+        setCustomLocation(location)
+        setIsLocationEnabled(false) // Disable GPS to prevent conflict
+    }
+
     return (
         <div className="app">
             <Header
@@ -127,7 +133,11 @@ function App() {
                 alertCount={alerts.length}
                 lastUpdate={lastUpdate}
                 isLocationEnabled={isLocationEnabled}
-                onToggleLocation={() => setIsLocationEnabled(!isLocationEnabled)}
+                onToggleLocation={() => {
+                    setIsLocationEnabled(!isLocationEnabled)
+                    if (!isLocationEnabled) setCustomLocation(null) // Reset custom if switching to GPS
+                }}
+                onCustomLocation={handleCustomLocation}
             />
 
             <SidebarToggle
@@ -163,6 +173,7 @@ function App() {
                     loading={loading}
                     onRefresh={handleRefresh}
                     showLocation={isLocationEnabled}
+                    customLocation={customLocation}
                 />
 
                 <AlertsSidebar

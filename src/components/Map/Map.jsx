@@ -12,7 +12,7 @@ L.Icon.Default.mergeOptions({
     shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
 })
 
-function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, showLocation }) {
+function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, showLocation, customLocation }) {
     const mapRef = useRef(null)
     const mapInstanceRef = useRef(null)
     const vehicleMarkersRef = useRef({})
@@ -49,13 +49,63 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
         }
     }, [])
 
-    // Handle Geolocation
-    const userLocationCoords = useRef(null) // Store coords for calculations
+    // Handle Geolocation & Custom Location
+    const userLocationCoords = useRef(null)
 
     useEffect(() => {
         if (!mapInstanceRef.current) return
 
-        if (showLocation) {
+        const createMarker = (lat, lng, isCustom) => {
+            const latlng = [lat, lng]
+            const icon = L.divIcon({
+                className: isCustom ? 'user-location-marker custom' : 'user-location-marker',
+                html: isCustom ? `
+                    <div class="user-marker-pulse custom"></div>
+                    <div class="user-marker-dot custom"></div>
+                ` : `
+                    <div class="user-marker-pulse"></div>
+                    <div class="user-marker-dot"></div>
+                `,
+                iconSize: [20, 20],
+                iconAnchor: [10, 10]
+            })
+
+            const marker = L.marker(latlng, {
+                icon,
+                zIndexOffset: 2000
+            }).addTo(mapInstanceRef.current)
+
+            marker.bindPopup(isCustom ? "Custom Origin" : "You are here")
+            return marker
+        }
+
+        if (customLocation) {
+            // Custom Location Active
+            if (watchIdRef.current !== null) {
+                navigator.geolocation.clearWatch(watchIdRef.current)
+                watchIdRef.current = null
+            }
+
+            // Remove existing marker to recreate (in case it was GPS style)
+            if (userMarkerRef.current) {
+                mapInstanceRef.current.removeLayer(userMarkerRef.current)
+            }
+
+            userLocationCoords.current = { latitude: customLocation.lat, longitude: customLocation.lng }
+            userMarkerRef.current = createMarker(customLocation.lat, customLocation.lng, true)
+            userMarkerRef.current.setPopupContent(`<strong>Origin</strong><br>${customLocation.label}`)
+            userMarkerRef.current.openPopup()
+
+            mapInstanceRef.current.flyTo([customLocation.lat, customLocation.lng], 15)
+
+        } else if (showLocation) {
+            // GPS Active
+            if (!userLocationCoords.current && userMarkerRef.current) {
+                // If we already have a marker but coords ref was null (rare), clear it
+                mapInstanceRef.current.removeLayer(userMarkerRef.current)
+                userMarkerRef.current = null
+            }
+
             if ('geolocation' in navigator) {
                 watchIdRef.current = navigator.geolocation.watchPosition(
                     (position) => {
@@ -63,39 +113,19 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
                         const latlng = [latitude, longitude]
                         userLocationCoords.current = { latitude, longitude }
 
-                        // Create or update marker
                         if (!userMarkerRef.current) {
-                            const icon = L.divIcon({
-                                className: 'user-location-marker',
-                                html: `
-                                    <div class="user-marker-pulse"></div>
-                                    <div class="user-marker-dot"></div>
-                                `,
-                                iconSize: [20, 20],
-                                iconAnchor: [10, 10]
-                            })
-
-                            userMarkerRef.current = L.marker(latlng, {
-                                icon,
-                                zIndexOffset: 2000 // Topmost
-                            }).addTo(mapInstanceRef.current)
-
-                            userMarkerRef.current.bindPopup("You are here")
-
-                            // Fly to location on first fix
+                            userMarkerRef.current = createMarker(latitude, longitude, false)
                             mapInstanceRef.current.flyTo(latlng, 15)
                         } else {
+                            // Ideally check if we need to swap icon (if switching back from custom without umount)
+                            // But usually we set customLocation=null, so effect re-runs.
+                            // If userMarker exists and isCustom, we should swap. 
+                            // Simplest is to remove if class doesn't match, but here we can assume standard usage.
                             userMarkerRef.current.setLatLng(latlng)
                         }
                     },
-                    (error) => {
-                        console.error("Geolocation error:", error)
-                    },
-                    {
-                        enableHighAccuracy: true,
-                        maximumAge: 0,
-                        timeout: 5000
-                    }
+                    (error) => console.error("Geolocation error:", error),
+                    { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
                 )
             }
         } else {
@@ -116,7 +146,7 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
                 navigator.geolocation.clearWatch(watchIdRef.current)
             }
         }
-    }, [showLocation])
+    }, [showLocation, customLocation])
 
     // Helper: Calculate walking time (approximate)
     const getWalkInfo = (start, endLat, endLng) => {

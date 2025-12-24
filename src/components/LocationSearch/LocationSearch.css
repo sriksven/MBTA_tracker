@@ -1,0 +1,107 @@
+.location-search {
+    position: relative;
+    width: 280px;
+    margin-left: 16px;
+}
+
+.search-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    padding: 0 12px;
+    height: 36px;
+    transition: all 0.2s ease;
+}
+
+.search-input-wrapper:focus-within {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.4);
+    box-shadow: 0 0 0 2px rgba(66, 153, 225, 0.3);
+}
+
+.search-icon {
+    font-size: 14px;
+    opacity: 0.7;
+    margin-right: 8px;
+}
+
+.location-search input {
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 0.9rem;
+    width: 100%;
+    outline: none;
+}
+
+.location-search input::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.search-spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-left: 8px;
+}
+
+.search-results {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    margin-top: 8px;
+    background: #1a202c;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    list-style: none;
+    padding: 0;
+    max-height: 300px;
+    overflow-y: auto;
+    z-index: 2000;
+}
+
+.search-results li {
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.search-results li:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.result-name {
+    color: white;
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.result-detail {
+    color: #a0aec0;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (max-width: 768px) {
+    .location-search {
+        width: 100%;
+        margin: 8px 0;
+    }
+}
