@@ -300,11 +300,11 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
                         if (walkInfo) {
                             const spareTime = diffMins - walkInfo.minutes
                             let statusColor = '#38a169' // Green
-                            let statusText = `Leave in ${spareTime} min`
+                            let statusText = `Start walking in ${spareTime} min`
 
                             if (spareTime <= 1) {
                                 statusColor = '#d69e2e' // Orange
-                                statusText = `Leave NOW!`
+                                statusText = `Start walking NOW!`
                             }
 
                             statusHtml = `<div style="font-size: 0.75em; color: ${statusColor}; font-weight: 700; margin-top: 2px;">${statusText}</div>`
