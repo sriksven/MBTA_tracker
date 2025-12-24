@@ -20,6 +20,8 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
     const routeLinesRef = useRef({})
     const userMarkerRef = useRef(null)
     const watchIdRef = useRef(null)
+    const walkingPathRef = useRef(null)
+    const animationFrameRef = useRef(null)
 
     // New Feature State
     const [followedVehicleId, setFollowedVehicleId] = useState(null)
@@ -233,6 +235,95 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
         })
     }, [routeLines, selectedRoutes])
 
+    // Helper: Draw animated walking path with real routing
+    const drawWalkingPath = async (stopLat, stopLng) => {
+        // Clear existing path and animation
+        if (walkingPathRef.current) {
+            mapInstanceRef.current.removeLayer(walkingPathRef.current)
+            walkingPathRef.current = null
+        }
+        if (animationFrameRef.current) {
+            cancelAnimationFrame(animationFrameRef.current)
+            animationFrameRef.current = null
+        }
+
+        // Get user location
+        const userLoc = userLocationCoords.current
+        if (!userLoc) return
+
+        try {
+            // Fetch real walking route from OSRM (Open Source Routing Machine)
+            const response = await fetch(
+                `https://router.project-osrm.org/route/v1/foot/${userLoc.longitude},${userLoc.latitude};${stopLng},${stopLat}?overview=full&geometries=geojson`
+            )
+            const data = await response.json()
+
+            if (!data.routes || data.routes.length === 0) {
+                console.warn('No route found')
+                return
+            }
+
+            // Get the route coordinates
+            const fullRoute = data.routes[0].geometry.coordinates.map(coord => [coord[1], coord[0]])
+
+            // Create the animated polyline (starts empty)
+            walkingPathRef.current = L.polyline([], {
+                color: '#00d4ff',
+                weight: 4,
+                opacity: 0.9,
+                className: 'walking-path-line'
+            }).addTo(mapInstanceRef.current)
+
+            // Animation variables
+            let progress = 0
+            const speed = 0.01 // Faster pace for quicker loops
+            const totalPoints = fullRoute.length
+
+            const animate = () => {
+                progress += speed
+
+                // Loop back to start when complete
+                if (progress >= 1) {
+                    progress = 0
+                }
+
+                // Use fractional index for smooth movement
+                const exactIndex = totalPoints * progress
+                const startIndex = Math.floor(exactIndex)
+                const fraction = exactIndex - startIndex
+
+                // Interpolate between current and next point for ultra-smooth movement
+                let currentPath
+                if (fraction > 0 && startIndex < totalPoints - 1) {
+                    // Create interpolated starting point
+                    const point1 = fullRoute[startIndex]
+                    const point2 = fullRoute[startIndex + 1]
+                    const interpolatedStart = [
+                        point1[0] + (point2[0] - point1[0]) * fraction,
+                        point1[1] + (point2[1] - point1[1]) * fraction
+                    ]
+                    // Path from interpolated point to end
+                    currentPath = [interpolatedStart, ...fullRoute.slice(startIndex + 1)]
+                } else {
+                    // Path from exact point to end
+                    currentPath = fullRoute.slice(startIndex)
+                }
+
+                // Update the polyline
+                if (currentPath.length > 1) {
+                    walkingPathRef.current.setLatLngs(currentPath)
+                }
+
+                animationFrameRef.current = requestAnimationFrame(animate)
+            }
+
+            animate()
+
+        } catch (error) {
+            console.error('Error fetching walking route:', error)
+        }
+    }
+
     // Update stop markers
     useEffect(() => {
         if (!mapInstanceRef.current) return
@@ -277,6 +368,9 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
             marker.bindPopup(baseContent, { minWidth: 170 })
 
             marker.on('popupopen', async () => {
+                // Draw walking path from user to stop
+                drawWalkingPath(stop.latitude, stop.longitude)
+
                 // Wait for DOM to completely render
                 await new Promise(resolve => setTimeout(resolve, 50))
 
@@ -395,6 +489,18 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
                     resultsContainer.innerHTML = walkHtml + '<div class="no-predictions">No reachable arrivals</div>'
                 } else {
                     resultsContainer.innerHTML = walkHtml + html
+                }
+            })
+
+            // Clear walking path when popup closes
+            marker.on('popupclose', () => {
+                if (walkingPathRef.current) {
+                    mapInstanceRef.current.removeLayer(walkingPathRef.current)
+                    walkingPathRef.current = null
+                }
+                if (animationFrameRef.current) {
+                    cancelAnimationFrame(animationFrameRef.current)
+                    animationFrameRef.current = null
                 }
             })
 

@@ -182,10 +182,10 @@
 .user-marker-dot {
     width: 12px;
     height: 12px;
-    background-color: #3b82f6;
+    background-color: #00d4ff;
     border-radius: 50%;
     border: 2px solid white;
-    box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 0 8px rgba(0, 212, 255, 0.8), 0 0 4px rgba(0, 212, 255, 0.6);
     position: absolute;
     top: 50%;
     left: 50%;
@@ -196,7 +196,7 @@
 .user-marker-pulse {
     width: 40px;
     height: 40px;
-    background-color: rgba(59, 130, 246, 0.4);
+    background-color: rgba(0, 212, 255, 0.4);
     border-radius: 50%;
     position: absolute;
     top: 50%;
@@ -210,11 +210,13 @@
     0% {
         transform: translate(-50%, -50%) scale(0.5);
         opacity: 0.8;
+        box-shadow: 0 0 0 0 rgba(0, 212, 255, 0.7);
     }
 
     100% {
         transform: translate(-50%, -50%) scale(1.5);
         opacity: 0;
+        box-shadow: 0 0 20px 10px rgba(0, 212, 255, 0);
     }
 }
 
@@ -306,4 +308,38 @@
 .leaflet-popup-content {
     margin: 12px;
     line-height: 1.4;
+}
+
+/* Walking Path Animation */
+.walking-path-line {
+    filter: drop-shadow(0 0 8px #00d4ff) drop-shadow(0 0 4px #00d4ff);
+    animation: pathPulse 2s ease-in-out infinite;
+}
+
+@keyframes pathPulse {
+
+    0%,
+    100% {
+        opacity: 1;
+        filter: drop-shadow(0 0 8px #00d4ff) drop-shadow(0 0 4px #00d4ff);
+    }
+
+    50% {
+        opacity: 0.7;
+        filter: drop-shadow(0 0 12px #00d4ff) drop-shadow(0 0 6px #00d4ff) drop-shadow(0 0 2px #ffffff);
+    }
+}
+/* Traveling Dot */
+.traveling-dot {
+    filter: drop-shadow(0 0 10px #00d4ff) drop-shadow(0 0 5px #00d4ff);
+    animation: dotGlow 1s ease-in-out infinite;
+}
+
+@keyframes dotGlow {
+    0%, 100% {
+        filter: drop-shadow(0 0 10px #00d4ff) drop-shadow(0 0 5px #00d4ff);
+    }
+    50% {
+        filter: drop-shadow(0 0 15px #00d4ff) drop-shadow(0 0 8px #00d4ff) drop-shadow(0 0 3px #ffffff);
+    }
 }
