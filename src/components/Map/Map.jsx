@@ -252,14 +252,14 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
         if (!userLoc) return
 
         try {
-            // Fetch real walking route from OSRM (Open Source Routing Machine)
+            // Fetch shortest walking route from OSRM
             const response = await fetch(
-                `https://router.project-osrm.org/route/v1/foot/${userLoc.longitude},${userLoc.latitude};${stopLng},${stopLat}?overview=full&geometries=geojson`
+                `https://router.project-osrm.org/route/v1/foot/${userLoc.longitude},${userLoc.latitude};${stopLng},${stopLat}?overview=full&geometries=geojson&continue_straight=false`
             )
             const data = await response.json()
 
             if (!data.routes || data.routes.length === 0) {
-                console.warn('No route found')
+                console.warn('No walking route found')
                 return
             }
 
@@ -276,7 +276,7 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
 
             // Animation variables
             let progress = 0
-            const speed = 0.01 // Faster pace for quicker loops
+            const speed = 0.006 // Slower, more relaxed pace
             const totalPoints = fullRoute.length
 
             const animate = () => {
