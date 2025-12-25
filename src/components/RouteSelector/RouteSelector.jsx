@@ -6,29 +6,14 @@ function RouteSelector({
     onToggleRoute,
     onRefresh,
     isOpen,
-    onClose,
-    showTrams,
-    setShowTrams,
-    showBuses,
-    setShowBuses
+    onClose
 }) {
     const handleToggle = (routeId) => {
         onToggleRoute(routeId)
     }
 
-    // Filter routes for display list based on toggles as well?
-    // User said "keep only buses and keep only trams" filter.
-    // If I uncheck "Trams", should they disappear from the LIST?
-    // "when either is togglrd off the lines and stops for that specific filter should turn off"
-    // It doesn't explicitly say they should disappear from the LIST, but it's good UX.
-    // If they disappear from list, how do I re-enable them? 
-    // Ah, the filter acts as a "View Filter". So yes, list should probably filter too, or at least be grouped?
-    // I'll filter the list too.
-
-    const visibleRoutes = routes.filter(r => {
-        if (r.type === 3) return showBuses
-        return showTrams // 0 or 1
-    })
+    // All routes are non-bus (buses are filtered out in App.jsx)
+    const tramRoutes = routes
 
     return (
         <aside className={`route-selector ${isOpen ? '' : 'collapsed'}`}>
@@ -48,51 +33,31 @@ function RouteSelector({
                 </div>
             </div>
 
-            <div className="type-filters">
-                <div className="filter-toggle">
-                    <span className="filter-label">🚆 Trams & Subways</span>
-                    <label className="switch">
-                        <input
-                            type="checkbox"
-                            checked={showTrams}
-                            onChange={(e) => setShowTrams(e.target.checked)}
-                        />
-                        <span className="slider round"></span>
-                    </label>
-                </div>
-                <div className="filter-toggle">
-                    <span className="filter-label">🚌 Buses</span>
-                    <label className="switch">
-                        <input
-                            type="checkbox"
-                            checked={showBuses}
-                            onChange={(e) => setShowBuses(e.target.checked)}
-                        />
-                        <span className="slider round"></span>
-                    </label>
-                </div>
-            </div>
-
-            <div className="filter-divider-line"></div>
+            <div class="filter-divider-line"></div>
 
             <div className="route-list">
-                {visibleRoutes.map(route => (
-                    <button
-                        key={route.id}
-                        className={`route-item ${selectedRoutes.has(route.id) ? 'active' : ''}`}
-                        onClick={() => handleToggle(route.id)}
-                        style={{
-                            '--route-color': route.color
-                        }}
-                    >
-                        <div className="route-badge" style={{ background: route.color }}>
-                            {route.shortName || route.id}
-                        </div>
-                        <div className="route-name">{route.name}</div>
-                    </button>
-                ))}
-                {visibleRoutes.length === 0 && (
-                    <div className="no-routes-msg">Enable filters to see routes</div>
+                {/* All Routes (Buses excluded at data load) */}
+                {tramRoutes.length > 0 ? (
+                    <>
+                        <div className="route-section-header">Trams & Subways</div>
+                        {tramRoutes.map(route => (
+                            <button
+                                key={route.id}
+                                className={`route-item ${selectedRoutes.has(route.id) ? 'active' : ''}`}
+                                onClick={() => handleToggle(route.id)}
+                                style={{
+                                    '--route-color': route.color
+                                }}
+                            >
+                                <div className="route-badge" style={{ background: route.color }}>
+                                    {route.shortName || route.id}
+                                </div>
+                                <div className="route-name">{route.name}</div>
+                            </button>
+                        ))}
+                    </>
+                ) : (
+                    <div className="no-routes-msg">No routes available</div>
                 )}
             </div>
         </aside>

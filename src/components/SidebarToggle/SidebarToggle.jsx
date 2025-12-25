@@ -1,9 +1,11 @@
 import './SidebarToggle.css'
 
-function SidebarToggle({ label, side, isOpen, badge, onClick }) {
+function SidebarToggle({ label, side, isOpen, badge, onClick, position }) {
+    const sidebarOpenClass = isOpen ? 'sidebar-open' : '';
+
     return (
         <button
-            className={`sidebar-toggle ${side} ${isOpen ? 'hidden' : ''}`}
+            className={`sidebar-toggle ${side} ${sidebarOpenClass} ${position ? `position-${position}` : ''}`}
             onClick={onClick}
             aria-label={`Toggle ${label}`}
         >

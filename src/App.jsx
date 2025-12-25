@@ -4,6 +4,7 @@ import Map from './components/Map/Map'
 import RouteSelector from './components/RouteSelector/RouteSelector'
 import AlertsSidebar from './components/AlertsSidebar/AlertsSidebar'
 import SidebarToggle from './components/SidebarToggle/SidebarToggle'
+import TransportModeSelector from './components/TransportModeSelector/TransportModeSelector'
 import { MBTAService } from './services/mbta.service'
 import './App.css'
 
@@ -18,14 +19,14 @@ function App() {
     // UI State
     const [showRouteSelector, setShowRouteSelector] = useState(false)
     const [showAlertsSidebar, setShowAlertsSidebar] = useState(false)
+    const [showTransportMode, setShowTransportMode] = useState(false)
+    const [transportMode, setTransportMode] = useState('walking')
     const [isLocationEnabled, setIsLocationEnabled] = useState(true)
     const [customLocation, setCustomLocation] = useState(null)
     const [lastUpdate, setLastUpdate] = useState(null)
     const [loading, setLoading] = useState(true)
 
-    // Filter State
-    const [showTrams, setShowTrams] = useState(true)
-    const [showBuses, setShowBuses] = useState(false)
+    // No filter state needed - buses are hardcoded to be excluded
 
     // Load initial data
     useEffect(() => {
@@ -33,12 +34,13 @@ function App() {
             try {
                 setLoading(true)
 
-                // Load routes (Subway + Bus)
-                const routesData = await MBTAService.getRoutes()
-                setRoutes(routesData)
+                // Load only non-bus routes (exclude type 3)
+                const allRoutes = await MBTAService.getRoutes()
+                const nonBusRoutes = allRoutes.filter(r => r.type !== 3)
+                setRoutes(nonBusRoutes)
 
-                // Auto-select subway routes only
-                const subwayRoutes = routesData.filter(r => r.type === 0 || r.type === 1)
+                // Auto-select subway routes only (type 0 and 1) by default
+                const subwayRoutes = nonBusRoutes.filter(r => r.type === 0 || r.type === 1)
                 const selectedIds = new Set(subwayRoutes.map(r => r.id))
                 setSelectedRoutes(selectedIds)
 
@@ -47,7 +49,7 @@ function App() {
                 for (const route of subwayRoutes) {
                     const shape = await MBTAService.getRouteShape(route.id)
                     if (shape) {
-                        shape.color = route.color // Use route color (includes Bus Yellow fix)
+                        shape.color = route.color
                         shapes[route.id] = shape
                     }
                 }
@@ -67,18 +69,10 @@ function App() {
         loadInitialData()
     }, [])
 
-    // Effective routes based on toggles
+    // All selected routes are already non-bus (filtered on load)
     const effectiveSelectedRoutes = useMemo(() => {
-        const effective = new Set()
-        selectedRoutes.forEach(id => {
-            const route = routes.find(r => r.id === id)
-            if (!route) return
-            const isBus = route.type === 3
-            if (isBus && showBuses) effective.add(id)
-            if (!isBus && showTrams) effective.add(id)
-        })
-        return effective
-    }, [selectedRoutes, routes, showTrams, showBuses])
+        return selectedRoutes
+    }, [selectedRoutes])
 
     // Update stops
     useEffect(() => {
@@ -178,6 +172,13 @@ function App() {
             />
 
             <div className="app-content">
+                <TransportModeSelector
+                    isOpen={showTransportMode}
+                    onClose={() => setShowTransportMode(false)}
+                    selectedMode={transportMode}
+                    onModeChange={setTransportMode}
+                />
+
                 <RouteSelector
                     routes={routes}
                     selectedRoutes={selectedRoutes}
@@ -185,11 +186,6 @@ function App() {
                     onRefresh={handleRefresh}
                     isOpen={showRouteSelector}
                     onClose={() => setShowRouteSelector(false)}
-                    // Filters
-                    showTrams={showTrams}
-                    setShowTrams={setShowTrams}
-                    showBuses={showBuses}
-                    setShowBuses={setShowBuses}
                 />
 
                 <Map
@@ -201,7 +197,6 @@ function App() {
                     onRefresh={handleRefresh}
                     showLocation={isLocationEnabled}
                     customLocation={customLocation}
-                    showBuses={showBuses}
                 />
 
                 <AlertsSidebar
@@ -212,10 +207,25 @@ function App() {
             </div>
 
             <SidebarToggle
+                label="Transport"
+                side="left"
+                position="top"
+                isOpen={showTransportMode}
+                onClick={() => {
+                    setShowTransportMode(!showTransportMode)
+                    if (!showTransportMode) setShowRouteSelector(false)
+                }}
+            />
+
+            <SidebarToggle
                 label="Routes"
                 side="left"
+                position="bottom"
                 isOpen={showRouteSelector}
-                onClick={() => setShowRouteSelector(!showRouteSelector)}
+                onClick={() => {
+                    setShowRouteSelector(!showRouteSelector)
+                    if (!showRouteSelector) setShowTransportMode(false)
+                }}
             />
 
             <SidebarToggle

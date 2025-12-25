@@ -12,7 +12,7 @@ L.Icon.Default.mergeOptions({
     shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
 })
 
-function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, showLocation, customLocation, showBuses }) {
+function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, showLocation, customLocation }) {
     const mapRef = useRef(null)
     const mapInstanceRef = useRef(null)
     const vehicleMarkersRef = useRef({})
@@ -196,15 +196,28 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
     const getRealWalkInfo = async (start, endLat, endLng) => {
         if (!start) return null
         try {
-            const url = `https://router.project-osrm.org/route/v1/foot/${start.longitude},${start.latitude};${endLng},${endLat}?overview=false`
+            // Request alternatives and use the shortest route
+            const url = `https://router.project-osrm.org/route/v1/foot/${start.longitude},${start.latitude};${endLng},${endLat}?overview=false&alternatives=true`
             const res = await fetch(url)
             const data = await res.json()
             if (data.code === 'Ok' && data.routes.length > 0) {
                 const durationSec = data.routes[0].duration
                 const distMeters = data.routes[0].distance
+                const distKm = distMeters / 1000
+
+                // Convert seconds to minutes and round up
+                let walkMinutes = Math.ceil(durationSec / 60)
+
+                // Sanity check: ensure at least 12 min/km (5 km/h walking speed)
+                const minRealisticTime = Math.ceil(distKm * 12)
+                if (walkMinutes < minRealisticTime) {
+                    console.warn(`OSRM returned unrealistic time: ${walkMinutes}min for ${distKm.toFixed(2)}km. Using ${minRealisticTime}min instead.`)
+                    walkMinutes = minRealisticTime
+                }
+
                 return {
-                    minutes: Math.ceil(durationSec / 60),
-                    distance: (distMeters / 1000).toFixed(2),
+                    minutes: walkMinutes,
+                    distance: distKm.toFixed(2),
                     isReal: true
                 }
             }
@@ -252,9 +265,9 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
         if (!userLoc) return
 
         try {
-            // Fetch shortest walking route from OSRM
+            // Fetch shortest walking route from OSRM - request alternatives and pick shortest
             const response = await fetch(
-                `https://router.project-osrm.org/route/v1/foot/${userLoc.longitude},${userLoc.latitude};${stopLng},${stopLat}?overview=full&geometries=geojson&continue_straight=false`
+                `https://router.project-osrm.org/route/v1/foot/${userLoc.longitude},${userLoc.latitude};${stopLng},${stopLat}?overview=full&geometries=geojson&alternatives=true&continue_straight=false`
             )
             const data = await response.json()
 
@@ -391,6 +404,8 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
                     getRealWalkInfo(userLocationCoords.current, stop.latitude, stop.longitude)
                 ])
 
+
+
                 if (predictions.length === 0) {
                     resultsContainer.innerHTML = '<div class="no-predictions">No upcoming arrivals</div>'
                     return
@@ -408,8 +423,21 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
 
                 const byDirection = {}
                 predictions.forEach(p => {
-                    // Filter out buses if showBuses is false
-                    if (!showBuses && p.route?.type === 3) return
+                    // HARDCODED: Always exclude buses (type 3)
+                    const routeType = p.route?.type
+                    const routeId = p.route?.id
+
+                    // Debug logging
+                    if (routeId && (routeId === '8' || routeId === '57' || routeId === '60')) {
+                        console.log(`Bus route detected: ${routeId}, type: ${routeType}`)
+                    }
+
+                    // Skip all buses - check both type and known bus route IDs
+                    if (routeType === 3) return
+                    if (routeId && ['8', '57', '60', '1', '15', '22', '23', '28', '39', '66', '71', '73', '77', '111', '116', '117'].includes(routeId)) {
+                        console.log(`Filtering out bus route: ${routeId}`)
+                        return
+                    }
 
                     const time = new Date(p.arrivalTime || p.departureTime)
                     const diffMs = time - now
@@ -456,11 +484,11 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
                         if (walkInfo) {
                             const spareTime = diffMins - walkInfo.minutes
                             let statusColor = '#38a169' // Green
-                            let statusText = `Start walking in ${spareTime} min`
+                            let statusText = `Leave in ${spareTime} min`
 
                             if (spareTime <= 1) {
                                 statusColor = '#d69e2e' // Orange
-                                statusText = `Start walking NOW!`
+                                statusText = `Leave NOW!`
                             }
 
                             statusHtml = `<div style="font-size: 7px; color: ${statusColor}; font-weight: 700; margin-top: 0px;">${statusText}</div>`

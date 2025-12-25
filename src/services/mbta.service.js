@@ -46,10 +46,10 @@ function decodePolyline(encoded) {
 }
 
 export const MBTAService = {
-    // Get all routes
+    // Get all routes (subway and light rail only, no buses)
     async getRoutes() {
         try {
-            const response = await fetch(`${MBTA_API_BASE}/routes?filter[type]=0,1,3&api_key=${MBTA_API_KEY}`)
+            const response = await fetch(`${MBTA_API_BASE}/routes?filter[type]=0,1&api_key=${MBTA_API_KEY}`)
             const data = await response.json()
 
             return data.data.map(route => ({

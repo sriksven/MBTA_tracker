@@ -1,0 +1,33 @@
+.transport-mode-toggle {
+    position: fixed;
+    left: 20px;
+    top: 120px;
+    width: 40px;
+    height: 40px;
+    background: var(--primary);
+    border: 2px solid var(--accent);
+    border-radius: var(--radius-md);
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-base);
+    z-index: 10000;
+    box-shadow: var(--shadow-lg);
+}
+
+.transport-mode-toggle:hover {
+    background: var(--primary-dark);
+    transform: scale(1.05);
+}
+
+.transport-mode-toggle.active {
+    background: var(--accent);
+    border-color: white;
+}
+
+.transport-mode-toggle svg {
+    width: 20px;
+    height: 20px;
+}

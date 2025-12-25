@@ -49,7 +49,7 @@ function Header({
                                 <path d="M12 2L2 22L12 18L22 22L12 2Z" />
                             )}
                         </svg>
-                        <span className="location-btn-text">{isLocationEnabled ? 'Tracking' : 'Locate Me'}</span>
+                        <span className="location-btn-text">{isLocationEnabled ? 'My Location' : 'Locate Me'}</span>
                     </button>
 
                     <div className="header-stats">

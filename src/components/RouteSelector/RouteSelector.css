@@ -1,6 +1,6 @@
 .route-selector {
-    width: 280px;
-    min-width: 280px;
+    width: 320px;
+    min-width: 320px;
     background: var(--bg-secondary);
     border-right: 1px solid var(--border-color);
     display: flex;
@@ -97,7 +97,7 @@
     transition: all var(--transition-base);
     display: flex;
     align-items: center;
-    gap: var(--spacing-sm);
+    gap: var(--spacing-md);
     text-align: left;
     width: 100%;
 }
@@ -219,6 +219,21 @@ input:checked+.slider:before {
     height: 1px;
     background: var(--border-color);
     margin: 0 var(--spacing-lg);
+}
+
+.route-section-header {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: var(--spacing-sm) 0;
+    margin-top: var(--spacing-sm);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.route-section-header:first-child {
+    margin-top: 0;
 }
 
 .no-routes-msg {
