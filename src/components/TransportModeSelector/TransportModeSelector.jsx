@@ -13,8 +13,7 @@ function SearchSidebar({ isOpen, onClose, stops, onRouteSearch, onClearRoute, ha
     const modes = [
         { id: 'walking', icon: '🚶', label: 'Walking' },
         { id: 'biking', icon: '🚴', label: 'Biking' },
-        { id: 'driving', icon: '🚗', label: 'Driving' },
-        { id: 'transit', icon: '🚌', label: 'Public Transit' }
+        { id: 'driving', icon: '🚗', label: 'Driving' }
     ]
 
     const handleToStationChange = (value) => {
@@ -39,7 +38,7 @@ function SearchSidebar({ isOpen, onClose, stops, onRouteSearch, onClearRoute, ha
     const handleSearch = () => {
         const selectedStation = stops.find(s => s.name === toStation)
         if (fromLocation && selectedStation) {
-            onRouteSearch(fromLocation, selectedStation)
+            onRouteSearch(fromLocation, selectedStation, transportMode)
         }
     }
 
@@ -129,7 +128,16 @@ function SearchSidebar({ isOpen, onClose, stops, onRouteSearch, onClearRoute, ha
                             <button
                                 key={mode.id}
                                 className={`mode-icon-btn ${transportMode === mode.id ? 'active' : ''}`}
-                                onClick={() => setTransportMode(mode.id)}
+                                onClick={() => {
+                                    setTransportMode(mode.id)
+                                    // Auto re-search if there's already an active route
+                                    if (hasActiveRoute && fromLocation && toStation) {
+                                        const selectedStation = stops.find(s => s.name === toStation)
+                                        if (selectedStation) {
+                                            onRouteSearch(fromLocation, selectedStation, mode.id)
+                                        }
+                                    }
+                                }}
                                 title={mode.label}
                                 aria-label={mode.label}
                             >

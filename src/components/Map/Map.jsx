@@ -24,6 +24,7 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
     const searchRouteRef = useRef(null)
     const animationFrameRef = useRef(null)
     const searchRouteAnimationRef = useRef(null)
+    const tileLayerRef = useRef(null)
 
     // New Feature State
     const [followedVehicleId, setFollowedVehicleId] = useState(null)
@@ -33,7 +34,8 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
         if (!mapInstanceRef.current) {
             mapInstanceRef.current = L.map(mapRef.current).setView([42.3601, -71.0589], 12)
 
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            // Start with default dark theme for transit
+            tileLayerRef.current = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
                 attribution:
                     '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
                 subdomains: 'abcd',
@@ -52,6 +54,47 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
             }
         }
     }, [])
+
+    // Switch map tiles based on transport mode
+    useEffect(() => {
+        return; // DISABLED: Keep dark theme always
+        if (!mapInstanceRef.current || !tileLayerRef.current) return
+
+        const mode = searchRoute?.mode || 'transit'
+
+        // Map tile configurations for each mode
+        const tileConfigs = {
+            'walking': {
+                url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a>'
+            },
+            'biking': {
+                url: 'https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png',
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors | Map style: <a href="https://www.cyclosm.org">CyclOSM</a>'
+            },
+            'driving': {
+                url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+            },
+            'transit': {
+                url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+            }
+        }
+
+        const config = tileConfigs[mode] || tileConfigs['transit']
+
+        // Remove old tile layer
+        mapInstanceRef.current.removeLayer(tileLayerRef.current)
+
+        // Add new tile layer
+        tileLayerRef.current = L.tileLayer(config.url, {
+            attribution: config.attribution,
+            subdomains: 'abc',
+            maxZoom: 19,
+        }).addTo(mapInstanceRef.current)
+
+    }, [searchRoute?.mode])
 
     // Handle Geolocation & Custom Location
     const userLocationCoords = useRef(null)
@@ -703,21 +746,39 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
                 const stopLat = station.latitude
                 const stopLng = station.longitude
 
+                // Map transport mode to OSRM profile
+                const modeMap = {
+                    'walking': 'foot',
+                    'biking': 'bike',
+                    'driving': 'car'
+                }
+                const osrmProfile = modeMap[searchRoute.mode] || 'foot'
+
+                // Url for debugging
+                const routeUrl = `https://router.project-osrm.org/route/v1/${osrmProfile}/${userLoc.longitude},${userLoc.latitude};${stopLng},${stopLat}?overview=full&geometries=geojson&alternatives=true&continue_straight=false`
+                console.log('Fetching route:', routeUrl)
+
                 // Fetch route from OSRM
-                const response = await fetch(
-                    `https://router.project-osrm.org/route/v1/foot/${userLoc.longitude},${userLoc.latitude};${stopLng},${stopLat}?overview=full&geometries=geojson&alternatives=true&continue_straight=false`
-                )
+                const response = await fetch(routeUrl)
                 const data = await response.json()
 
                 if (data.code === 'Ok' && data.routes.length > 0) {
-                    const fullRoute = data.routes[0].geometry.coordinates.map(c => [c[1], c[0]])
+                    const route = data.routes[0]
+                    const fullRoute = route.geometry.coordinates.map(c => [c[1], c[0]])
+
+                    // Debug logging
+                    console.log(`${searchRoute.mode.toUpperCase()} Route:`, {
+                        distance: `${(route.distance / 1000).toFixed(2)} km`,
+                        duration: `${Math.ceil(route.duration / 60)} min`,
+                        waypoints: fullRoute.length
+                    })
 
                     // Create the animated polyline (starts empty, same as walking path)
                     searchRouteRef.current = L.polyline([], {
-                        color: '#00d4ff',
-                        weight: 4,
-                        opacity: 0.9,
-                        className: 'walking-path-line'
+                        color: '#60a5fa', // Match CSS color
+                        weight: 6,
+                        opacity: 1,
+                        className: `walking-path-line ${searchRoute.mode}`
                     }).addTo(map)
 
                     // Animation variables
@@ -781,7 +842,7 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
 
     return (
         <div className="map-wrapper">
-            <button className="map-refresh-btn" onClick={onRefresh} aria-label="Refresh data">
+            <button className="map-refresh-btn" onClick={() => window.location.reload()} aria-label="Refresh app">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2" />
                 </svg>

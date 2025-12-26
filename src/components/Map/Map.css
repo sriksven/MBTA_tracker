@@ -320,9 +320,27 @@
 }
 
 /* Walking Path Animation */
+/* Walking Path Animation */
 .walking-path-line {
-    filter: drop-shadow(0 0 8px #00d4ff) drop-shadow(0 0 4px #00d4ff);
+    stroke: #60a5fa;
+    /* Light Blue */
+    stroke-width: 6px;
+    filter: drop-shadow(0 0 4px #2563eb) drop-shadow(0 0 8px #3b82f6);
     animation: pathPulse 2s ease-in-out infinite;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.walking-path-line.walking {
+    animation-duration: 3s;
+}
+
+.walking-path-line.biking {
+    animation-duration: 1.5s;
+}
+
+.walking-path-line.driving {
+    animation-duration: 0.8s;
 }
 
 @keyframes pathPulse {
@@ -330,12 +348,15 @@
     0%,
     100% {
         opacity: 1;
-        filter: drop-shadow(0 0 8px #00d4ff) drop-shadow(0 0 4px #00d4ff);
+        filter: drop-shadow(0 0 4px #2563eb) drop-shadow(0 0 8px #3b82f6);
+        stroke: #60a5fa;
     }
 
     50% {
-        opacity: 0.7;
-        filter: drop-shadow(0 0 12px #00d4ff) drop-shadow(0 0 6px #00d4ff) drop-shadow(0 0 2px #ffffff);
+        opacity: 0.8;
+        filter: drop-shadow(0 0 8px #3b82f6) drop-shadow(0 0 16px #60a5fa) drop-shadow(0 0 4px #ffffff);
+        stroke: #93c5fd;
+        /* Lighter blue pulse */
     }
 }
 

@@ -152,13 +152,21 @@ function App() {
         }
     }
 
+    const handleResetRoutes = () => {
+        // Reset to default: only subway routes (type 0 and 1)
+        const subwayRoutes = routes.filter(r => r.type === 0 || r.type === 1)
+        const selectedIds = new Set(subwayRoutes.map(r => r.id))
+        setSelectedRoutes(selectedIds)
+    }
+
     const handleCustomLocation = (location) => {
         setCustomLocation(location)
         setIsLocationEnabled(false)
     }
 
-    const handleRouteSearch = (fromAddress, toStation) => {
-        setSearchRoute({ from: fromAddress, to: toStation })
+    const handleRouteSearch = (fromAddress, toStation, transportMode) => {
+        console.log('App: handleRouteSearch called with:', { fromAddress, toStation, transportMode })
+        setSearchRoute({ from: fromAddress, to: toStation, mode: transportMode })
         // Disable GPS location tracking when using search route
         setIsLocationEnabled(false)
         setCustomLocation(null)
@@ -218,6 +226,7 @@ function App() {
                     selectedRoutes={selectedRoutes}
                     onToggleRoute={handleToggleRoute}
                     onRefresh={handleRefresh}
+                    onResetRoutes={handleResetRoutes}
                     isOpen={showRouteSelector}
                     onClose={() => setShowRouteSelector(false)}
                 />
