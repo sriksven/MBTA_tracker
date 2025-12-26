@@ -459,7 +459,7 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
                     byDirection[dirId].push(p)
                 })
 
-                const html = Object.keys(byDirection).sort().map(dirId => {
+                const directionSections = Object.keys(byDirection).sort().map(dirId => {
                     const preds = byDirection[dirId]
                     const route = preds[0].route
                     const dirName = route?.directionNames?.[dirId] || (dirId == 0 ? 'Outbound' : 'Inbound')
@@ -516,8 +516,13 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
                         `
                     }).join('')
 
-                    return `<div class="direction-header">${dirName}</div>` + rows
-                }).join('')
+                    return `<div class="direction-section"><div class="direction-header">${dirName}</div>${rows}</div>`
+                })
+
+                const hasMultipleDirections = directionSections.length > 1
+                const html = hasMultipleDirections
+                    ? `<div class="predictions-grid">${directionSections.join('')}</div>`
+                    : directionSections.join('')
 
                 if (!html) {
                     resultsContainer.innerHTML = walkHtml + '<div class="no-predictions">No reachable arrivals</div>'

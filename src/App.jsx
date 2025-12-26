@@ -195,15 +195,6 @@ function App() {
                     hasActiveRoute={!!searchRoute}
                 />
 
-                <RouteSelector
-                    routes={routes}
-                    selectedRoutes={selectedRoutes}
-                    onToggleRoute={handleToggleRoute}
-                    onRefresh={handleRefresh}
-                    isOpen={showRouteSelector}
-                    onClose={() => setShowRouteSelector(false)}
-                />
-
                 <Map
                     vehicles={vehicles}
                     stops={stops}
@@ -221,6 +212,15 @@ function App() {
                     isOpen={showAlertsSidebar}
                     onClose={() => setShowAlertsSidebar(false)}
                 />
+
+                <RouteSelector
+                    routes={routes}
+                    selectedRoutes={selectedRoutes}
+                    onToggleRoute={handleToggleRoute}
+                    onRefresh={handleRefresh}
+                    isOpen={showRouteSelector}
+                    onClose={() => setShowRouteSelector(false)}
+                />
             </div>
 
             <SidebarToggle
@@ -236,21 +236,28 @@ function App() {
 
             <SidebarToggle
                 label="Routes"
-                side="left"
+                side="right"
                 position="bottom"
                 isOpen={showRouteSelector}
                 onClick={() => {
                     setShowRouteSelector(!showRouteSelector)
-                    if (!showRouteSelector) setShowSearchSidebar(false)
+                    if (!showRouteSelector) {
+                        setShowSearchSidebar(false)
+                        setShowAlertsSidebar(false)
+                    }
                 }}
             />
 
             <SidebarToggle
                 label="Alerts"
                 side="right"
+                position="top"
                 isOpen={showAlertsSidebar}
                 badge={alerts.length}
-                onClick={() => setShowAlertsSidebar(!showAlertsSidebar)}
+                onClick={() => {
+                    setShowAlertsSidebar(!showAlertsSidebar)
+                    if (!showAlertsSidebar) setShowRouteSelector(false)
+                }}
             />
         </div>
     )

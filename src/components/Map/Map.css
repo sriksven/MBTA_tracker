@@ -237,6 +237,17 @@
     min-width: 200px;
 }
 
+.predictions-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.direction-section {
+    min-width: 0;
+    /* Allow content to shrink */
+}
+
 .loading-predictions,
 .no-predictions {
     font-size: 0.85rem;
@@ -251,8 +262,8 @@
     text-transform: uppercase;
     color: #a0aec0;
     font-weight: 700;
-    margin-top: 8px;
-    margin-bottom: 2px;
+    margin-top: 0;
+    margin-bottom: 4px;
     letter-spacing: 0.05em;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     padding-bottom: 2px;
@@ -286,11 +297,9 @@
 .pred-dest {
     flex: 1;
     font-size: 9px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
     font-weight: 500;
     color: #ffffff;
+    line-height: 1.2;
 }
 
 .pred-time {
@@ -329,6 +338,7 @@
         filter: drop-shadow(0 0 12px #00d4ff) drop-shadow(0 0 6px #00d4ff) drop-shadow(0 0 2px #ffffff);
     }
 }
+
 /* Traveling Dot */
 .traveling-dot {
     filter: drop-shadow(0 0 10px #00d4ff) drop-shadow(0 0 5px #00d4ff);
@@ -336,9 +346,12 @@
 }
 
 @keyframes dotGlow {
-    0%, 100% {
+
+    0%,
+    100% {
         filter: drop-shadow(0 0 10px #00d4ff) drop-shadow(0 0 5px #00d4ff);
     }
+
     50% {
         filter: drop-shadow(0 0 15px #00d4ff) drop-shadow(0 0 8px #00d4ff) drop-shadow(0 0 3px #ffffff);
     }

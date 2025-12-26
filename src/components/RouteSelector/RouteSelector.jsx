@@ -16,7 +16,7 @@ function RouteSelector({
     const tramRoutes = routes
 
     return (
-        <aside className={`route-selector ${isOpen ? '' : 'collapsed'}`}>
+        <aside className={`route-selector ${isOpen ? 'open' : ''}`}>
             <div className="route-selector-header">
                 <h2>Route Filters</h2>
                 <div className="header-buttons">
@@ -33,7 +33,7 @@ function RouteSelector({
                 </div>
             </div>
 
-            <div class="filter-divider-line"></div>
+            <div className="filter-divider-line"></div>
 
             <div className="route-list">
                 {/* All Routes (Buses excluded at data load) */}
