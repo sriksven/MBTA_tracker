@@ -4,7 +4,7 @@ import Map from './components/Map/Map'
 import RouteSelector from './components/RouteSelector/RouteSelector'
 import AlertsSidebar from './components/AlertsSidebar/AlertsSidebar'
 import SidebarToggle from './components/SidebarToggle/SidebarToggle'
-import TransportModeSelector from './components/TransportModeSelector/TransportModeSelector'
+import SearchSidebar from './components/TransportModeSelector/TransportModeSelector'
 import { MBTAService } from './services/mbta.service'
 import './App.css'
 
@@ -19,8 +19,8 @@ function App() {
     // UI State
     const [showRouteSelector, setShowRouteSelector] = useState(false)
     const [showAlertsSidebar, setShowAlertsSidebar] = useState(false)
-    const [showTransportMode, setShowTransportMode] = useState(false)
-    const [transportMode, setTransportMode] = useState('walking')
+    const [showSearchSidebar, setShowSearchSidebar] = useState(false)
+    const [searchRoute, setSearchRoute] = useState(null)
     const [isLocationEnabled, setIsLocationEnabled] = useState(true)
     const [customLocation, setCustomLocation] = useState(null)
     const [lastUpdate, setLastUpdate] = useState(null)
@@ -157,6 +157,18 @@ function App() {
         setIsLocationEnabled(false)
     }
 
+    const handleRouteSearch = (fromAddress, toStation) => {
+        setSearchRoute({ from: fromAddress, to: toStation })
+        // Disable GPS location tracking when using search route
+        setIsLocationEnabled(false)
+        setCustomLocation(null)
+        // The Map component will handle drawing the route
+    }
+
+    const handleClearRoute = () => {
+        setSearchRoute(null)
+    }
+
     return (
         <div className="app">
             <Header
@@ -169,14 +181,18 @@ function App() {
                     if (!isLocationEnabled) setCustomLocation(null)
                 }}
                 onCustomLocation={handleCustomLocation}
+                searchRoute={searchRoute}
+                onClearRoute={handleClearRoute}
             />
 
             <div className="app-content">
-                <TransportModeSelector
-                    isOpen={showTransportMode}
-                    onClose={() => setShowTransportMode(false)}
-                    selectedMode={transportMode}
-                    onModeChange={setTransportMode}
+                <SearchSidebar
+                    isOpen={showSearchSidebar}
+                    onClose={() => setShowSearchSidebar(false)}
+                    stops={stops}
+                    onRouteSearch={handleRouteSearch}
+                    onClearRoute={handleClearRoute}
+                    hasActiveRoute={!!searchRoute}
                 />
 
                 <RouteSelector
@@ -197,6 +213,7 @@ function App() {
                     onRefresh={handleRefresh}
                     showLocation={isLocationEnabled}
                     customLocation={customLocation}
+                    searchRoute={searchRoute}
                 />
 
                 <AlertsSidebar
@@ -207,13 +224,13 @@ function App() {
             </div>
 
             <SidebarToggle
-                label="Transport"
+                label="Search"
                 side="left"
                 position="top"
-                isOpen={showTransportMode}
+                isOpen={showSearchSidebar}
                 onClick={() => {
-                    setShowTransportMode(!showTransportMode)
-                    if (!showTransportMode) setShowRouteSelector(false)
+                    setShowSearchSidebar(!showSearchSidebar)
+                    if (!showSearchSidebar) setShowRouteSelector(false)
                 }}
             />
 
@@ -224,7 +241,7 @@ function App() {
                 isOpen={showRouteSelector}
                 onClick={() => {
                     setShowRouteSelector(!showRouteSelector)
-                    if (!showRouteSelector) setShowTransportMode(false)
+                    if (!showRouteSelector) setShowSearchSidebar(false)
                 }}
             />
 

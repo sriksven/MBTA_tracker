@@ -1,12 +1,21 @@
 import { useState, useEffect, useRef } from 'react'
 import './LocationSearch.css'
 
-function LocationSearch({ onLocationSelect }) {
+function LocationSearch({ onLocationSelect, reset }) {
     const [query, setQuery] = useState('')
     const [results, setResults] = useState([])
     const [isOpen, setIsOpen] = useState(false)
     const [loading, setLoading] = useState(false)
     const containerRef = useRef(null)
+
+    // Reset query when reset prop changes
+    useEffect(() => {
+        if (reset) {
+            setQuery('')
+            setResults([])
+            setIsOpen(false)
+        }
+    }, [reset])
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -84,7 +93,7 @@ function LocationSearch({ onLocationSelect }) {
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     onFocus={() => query.length >= 3 && setIsOpen(true)}
-                    placeholder="Search address (Open Source)..."
+                    placeholder="Search address"
                     aria-label="Search location"
                 />
                 {loading && <div className="search-spinner"></div>}

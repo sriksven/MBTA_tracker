@@ -12,7 +12,7 @@ L.Icon.Default.mergeOptions({
     shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
 })
 
-function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, showLocation, customLocation }) {
+function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, showLocation, customLocation, searchRoute }) {
     const mapRef = useRef(null)
     const mapInstanceRef = useRef(null)
     const vehicleMarkersRef = useRef({})
@@ -21,7 +21,9 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
     const userMarkerRef = useRef(null)
     const watchIdRef = useRef(null)
     const walkingPathRef = useRef(null)
+    const searchRouteRef = useRef(null)
     const animationFrameRef = useRef(null)
+    const searchRouteAnimationRef = useRef(null)
 
     // New Feature State
     const [followedVehicleId, setFollowedVehicleId] = useState(null)
@@ -260,8 +262,8 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
             animationFrameRef.current = null
         }
 
-        // Get user location
-        const userLoc = userLocationCoords.current
+        // Get user location - prioritize search route's from address if available
+        const userLoc = searchRoute?.from || userLocationCoords.current
         if (!userLoc) return
 
         try {
@@ -381,8 +383,10 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
             marker.bindPopup(baseContent, { minWidth: 170 })
 
             marker.on('popupopen', async () => {
-                // Draw walking path from user to stop
-                drawWalkingPath(stop.latitude, stop.longitude)
+                // Only draw walking path if there's no active search route
+                if (!searchRoute) {
+                    drawWalkingPath(stop.latitude, stop.longitude)
+                }
 
                 // Wait for DOM to completely render
                 await new Promise(resolve => setTimeout(resolve, 50))
@@ -399,9 +403,11 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
 
                 // Parallel Fetch: Predictions + Real Walk Time
                 const now = new Date()
+                // Use search route's from address if available, otherwise use GPS location
+                const startLocation = searchRoute?.from || userLocationCoords.current
                 const [predictions, walkInfo] = await Promise.all([
                     MBTAService.getPredictions(stop.id),
-                    getRealWalkInfo(userLocationCoords.current, stop.latitude, stop.longitude)
+                    getRealWalkInfo(startLocation, stop.latitude, stop.longitude)
                 ])
 
 
@@ -659,6 +665,114 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
             })
         }
     }, [vehicles, followedVehicleId])
+
+    // Handle search route
+    useEffect(() => {
+        const map = mapInstanceRef.current
+        if (!map) return
+
+        // Clear previous search route and animation
+        if (searchRouteRef.current) {
+            map.removeLayer(searchRouteRef.current)
+            searchRouteRef.current = null
+        }
+        if (searchRouteAnimationRef.current) {
+            cancelAnimationFrame(searchRouteAnimationRef.current)
+            searchRouteAnimationRef.current = null
+        }
+
+        // If no search route, just cleanup and return
+        if (!searchRoute) return
+
+        const drawSearchRoute = async () => {
+            try {
+                // Get starting location from searchRoute.from (the address entered in the search sidebar)
+                let userLoc = searchRoute.from
+
+                if (!userLoc) {
+                    console.error('No starting location provided in search route')
+                    return
+                }
+
+                const station = searchRoute.to
+                const stopLat = station.latitude
+                const stopLng = station.longitude
+
+                // Fetch route from OSRM
+                const response = await fetch(
+                    `https://router.project-osrm.org/route/v1/foot/${userLoc.longitude},${userLoc.latitude};${stopLng},${stopLat}?overview=full&geometries=geojson&alternatives=true&continue_straight=false`
+                )
+                const data = await response.json()
+
+                if (data.code === 'Ok' && data.routes.length > 0) {
+                    const fullRoute = data.routes[0].geometry.coordinates.map(c => [c[1], c[0]])
+
+                    // Create the animated polyline (starts empty, same as walking path)
+                    searchRouteRef.current = L.polyline([], {
+                        color: '#00d4ff',
+                        weight: 4,
+                        opacity: 0.9,
+                        className: 'walking-path-line'
+                    }).addTo(map)
+
+                    // Animation variables
+                    let progress = 0
+                    const speed = 0.006 // Same speed as walking path
+                    const totalPoints = fullRoute.length
+
+                    const animate = () => {
+                        progress += speed
+
+                        // Loop back to start when complete
+                        if (progress >= 1) {
+                            progress = 0
+                        }
+
+                        // Use fractional index for smooth movement
+                        const exactIndex = totalPoints * progress
+                        const startIndex = Math.floor(exactIndex)
+                        const fraction = exactIndex - startIndex
+
+                        // Interpolate between current and next point for ultra-smooth movement
+                        let currentPath
+                        if (fraction > 0 && startIndex < totalPoints - 1) {
+                            const point1 = fullRoute[startIndex]
+                            const point2 = fullRoute[startIndex + 1]
+                            const interpolatedStart = [
+                                point1[0] + (point2[0] - point1[0]) * fraction,
+                                point1[1] + (point2[1] - point1[1]) * fraction
+                            ]
+                            currentPath = [interpolatedStart, ...fullRoute.slice(startIndex + 1)]
+                        } else {
+                            currentPath = fullRoute.slice(startIndex)
+                        }
+
+                        // Update the polyline
+                        if (currentPath.length > 1) {
+                            searchRouteRef.current.setLatLngs(currentPath)
+                        }
+
+                        searchRouteAnimationRef.current = requestAnimationFrame(animate)
+                    }
+
+                    animate()
+
+                    // Fit map to show the route
+                    map.fitBounds(L.latLngBounds(fullRoute), { padding: [50, 50] })
+
+                    // Open the station popup
+                    const stationMarker = stopMarkersRef.current[station.id]
+                    if (stationMarker) {
+                        stationMarker.openPopup()
+                    }
+                }
+            } catch (error) {
+                console.error('Error drawing search route:', error)
+            }
+        }
+
+        drawSearchRoute()
+    }, [searchRoute, customLocation, showLocation])
 
     return (
         <div className="map-wrapper">

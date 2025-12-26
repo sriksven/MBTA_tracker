@@ -155,6 +155,32 @@
     letter-spacing: 0.02em;
 }
 
+/* Stop Route Button in Header */
+.stop-route-header-btn {
+    background: rgba(229, 62, 62, 0.1);
+    border: 1px solid rgba(229, 62, 62, 0.3);
+    color: #fc8181;
+    height: 40px;
+    padding: 0 16px;
+    border-radius: 9999px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.stop-route-header-btn:hover {
+    background: rgba(229, 62, 62, 0.2);
+    border-color: #fc8181;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(229, 62, 62, 0.3);
+}
+
+.stop-route-header-btn:active {
+    transform: translateY(0);
+}
+
 @media (max-width: 768px) {
     .header {
         padding: var(--spacing-xs) var(--spacing-sm);
@@ -199,5 +225,17 @@
 
     .location-toggle-btn svg {
         margin: 0;
+    }
+
+    .stop-route-header-btn {
+        padding: 0;
+        width: 36px;
+        height: 36px;
+        justify-content: center;
+        border-radius: 50%;
+    }
+
+    .stop-route-header-btn .location-btn-text {
+        display: none;
     }
 }
