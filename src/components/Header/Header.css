@@ -51,6 +51,43 @@
     letter-spacing: -0.5px;
 }
 
+/* Transit Mode Navigation */
+.transit-mode-nav {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.03);
+    padding: 4px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.transit-mode-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    white-space: nowrap;
+}
+
+.transit-mode-btn:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+    transform: translateY(-1px);
+}
+
+.transit-mode-btn.active {
+    background: rgba(59, 130, 246, 0.2);
+    color: #60a5fa;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    box-shadow: 0 0 15px rgba(59, 130, 246, 0.2);
+}
+
 .header-stats {
     display: flex;
     align-items: center;
@@ -195,6 +232,17 @@
     .logo-icon-svg {
         width: 24px;
         height: 24px;
+    }
+
+    /* Transit mode buttons - show only icons on mobile */
+    .transit-mode-nav {
+        padding: 2px;
+        gap: 4px;
+    }
+
+    .transit-mode-btn {
+        padding: 6px 10px;
+        font-size: 0.8rem;
     }
 
     .stat-label span {

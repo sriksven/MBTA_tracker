@@ -9,7 +9,9 @@ function Header({
     onToggleLocation,
     onCustomLocation,
     searchRoute,
-    onClearRoute
+    onClearRoute,
+    transitMode,
+    onTransitModeChange
 }) {
     const [timeString, setTimeString] = useState('--:--:--')
 
@@ -32,6 +34,30 @@ function Header({
                         <path d="M25 25H75V40H58V75H42V40H25V25Z" fill="currentColor" />
                     </svg>
                     <h1>MBTA Live Tracker</h1>
+                </div>
+
+                <div className="transit-mode-nav">
+                    <button
+                        className={`transit-mode-btn ${transitMode === 'subway' ? 'active' : ''}`}
+                        onClick={() => onTransitModeChange('subway')}
+                        title="Tram Lines"
+                    >
+                        🚊 Tram
+                    </button>
+                    <button
+                        className={`transit-mode-btn ${transitMode === 'bus' ? 'active' : ''}`}
+                        onClick={() => onTransitModeChange('bus')}
+                        title="Bus Routes"
+                    >
+                        🚌 Bus
+                    </button>
+                    <button
+                        className={`transit-mode-btn ${transitMode === 'rail' ? 'active' : ''}`}
+                        onClick={() => onTransitModeChange('rail')}
+                        title="Commuter Rail"
+                    >
+                        🚆 Rail
+                    </button>
                 </div>
 
                 <div className="header-actions">

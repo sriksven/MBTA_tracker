@@ -7,14 +7,43 @@ function RouteSelector({
     onRefresh,
     onResetRoutes,
     isOpen,
-    onClose
+    onClose,
+    transitMode
 }) {
     const handleToggle = (routeId) => {
         onToggleRoute(routeId)
     }
 
-    // All routes are non-bus (buses are filtered out in App.jsx)
-    const tramRoutes = routes
+    // Get section header based on transit mode
+    const getSectionHeader = () => {
+        switch (transitMode) {
+            case 'subway':
+                return 'Tram Lines'
+            case 'bus':
+                return 'Bus Routes'
+            case 'rail':
+                return 'Commuter Rail'
+            default:
+                return 'Routes'
+        }
+    }
+
+    // Clean up route badge text (remove CR- prefix)
+    const getRouteBadge = (route) => {
+        if (route.shortName) {
+            return route.shortName.replace(/^CR-/, '')
+        }
+        return route.id.replace(/^CR-/, '')
+    }
+
+    // Clean up route name (remove 'Line', 'Route', etc.)
+    const getRouteName = (name) => {
+        return name
+            .replace(/ Line$/i, '')           // Remove " Line" at the end
+            .replace(/ Route$/i, '')          // Remove " Route" at the end
+            .replace(/\/.+$/, '')             // Remove everything after "/" (e.g., "Fall River/New Bedford" -> "Fall River")
+            .trim()
+    }
 
     return (
         <aside className={`route-selector ${isOpen ? 'open' : ''}`}>
@@ -37,11 +66,10 @@ function RouteSelector({
             <div className="filter-divider-line"></div>
 
             <div className="route-list">
-                {/* All Routes (Buses excluded at data load) */}
-                {tramRoutes.length > 0 ? (
+                {routes.length > 0 ? (
                     <>
-                        <div className="route-section-header">Trams & Subways</div>
-                        {tramRoutes.map(route => (
+                        <div className="route-section-header">{getSectionHeader()}</div>
+                        {routes.map(route => (
                             <button
                                 key={route.id}
                                 className={`route-item ${selectedRoutes.has(route.id) ? 'active' : ''}`}
@@ -50,9 +78,6 @@ function RouteSelector({
                                     '--route-color': route.color
                                 }}
                             >
-                                <div className="route-badge" style={{ background: route.color }}>
-                                    {route.shortName || route.id}
-                                </div>
                                 <div className="route-name">{route.name}</div>
                             </button>
                         ))}

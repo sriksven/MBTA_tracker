@@ -1,20 +1,49 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import LocationSearch from '../LocationSearch/LocationSearch'
 import './SearchSidebar.css'
 
-function SearchSidebar({ isOpen, onClose, stops, onRouteSearch, onClearRoute, hasActiveRoute }) {
+function SearchSidebar({ isOpen, onClose, stops, onRouteSearch, onClearRoute, hasActiveRoute, transitMode }) {
     const [fromLocation, setFromLocation] = useState(null)
     const [toStation, setToStation] = useState('')
     const [filteredStations, setFilteredStations] = useState([])
     const [showStationDropdown, setShowStationDropdown] = useState(false)
     const [transportMode, setTransportMode] = useState('walking')
     const [resetKey, setResetKey] = useState(0)
+    const dropdownRef = useRef(null)
 
     const modes = [
         { id: 'walking', icon: '🚶', label: 'Walking' },
         { id: 'biking', icon: '🚴', label: 'Biking' },
         { id: 'driving', icon: '🚗', label: 'Driving' }
     ]
+
+    // Get mode-specific labels
+    const getModeLabels = () => {
+        switch (transitMode) {
+            case 'subway':
+                return {
+                    header: 'Search Tram Route',
+                    stationLabel: 'Tram Station'
+                }
+            case 'bus':
+                return {
+                    header: 'Search Bus Route',
+                    stationLabel: 'Bus Stop'
+                }
+            case 'rail':
+                return {
+                    header: 'Search Rail Route',
+                    stationLabel: 'Rail Station'
+                }
+            default:
+                return {
+                    header: 'Search Route',
+                    stationLabel: 'Station Name'
+                }
+        }
+    }
+
+    const labels = getModeLabels()
 
     const handleToStationChange = (value) => {
         setToStation(value)
@@ -74,10 +103,27 @@ function SearchSidebar({ isOpen, onClose, stops, onRouteSearch, onClearRoute, ha
         }
     }, [hasActiveRoute])
 
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setShowStationDropdown(false)
+            }
+        }
+
+        if (showStationDropdown) {
+            document.addEventListener('mousedown', handleClickOutside)
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside)
+        }
+    }, [showStationDropdown])
+
     return (
         <aside className={`search-sidebar ${isOpen ? '' : 'collapsed'}`}>
             <div className="search-sidebar-header">
-                <h2>Search Route</h2>
+                <h2>{labels.header}</h2>
                 <button className="close-btn" onClick={onClose} aria-label="Close search">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M18 6L6 18M6 6l12 12" />
@@ -96,18 +142,24 @@ function SearchSidebar({ isOpen, onClose, stops, onRouteSearch, onClearRoute, ha
                     )}
                 </div>
 
-                <div className="search-field">
-                    <label htmlFor="to-station">Station Name</label>
+                <div className="search-field" ref={dropdownRef}>
+                    <label htmlFor="to-station">{labels.stationLabel}</label>
                     <input
                         id="to-station"
                         type="text"
-                        placeholder="Search for a station"
+                        placeholder={`Search for a ${labels.stationLabel.toLowerCase()}`}
                         value={toStation}
                         onChange={(e) => handleToStationChange(e.target.value)}
-                        onFocus={() => toStation && setShowStationDropdown(true)}
+                        onFocus={() => {
+                            // Show all stations when clicking the field
+                            if (toStation.length === 0) {
+                                setFilteredStations(stops.slice(0, 50)) // Show first 50 stations
+                            }
+                            setShowStationDropdown(true)
+                        }}
                     />
                     {showStationDropdown && filteredStations.length > 0 && (
-                        <div className="station-dropdown">
+                        <div className="station-dropdown scrollable">
                             {filteredStations.map(station => (
                                 <button
                                     key={station.id}

@@ -7,6 +7,7 @@ function LocationSearch({ onLocationSelect, reset }) {
     const [isOpen, setIsOpen] = useState(false)
     const [loading, setLoading] = useState(false)
     const containerRef = useRef(null)
+    const justSelectedRef = useRef(false) // Track if user just selected an item
 
     // Reset query when reset prop changes
     useEffect(() => {
@@ -14,6 +15,7 @@ function LocationSearch({ onLocationSelect, reset }) {
             setQuery('')
             setResults([])
             setIsOpen(false)
+            justSelectedRef.current = false
         }
     }, [reset])
 
@@ -30,6 +32,12 @@ function LocationSearch({ onLocationSelect, reset }) {
 
     // Debounce search
     useEffect(() => {
+        // Don't search if user just selected an item
+        if (justSelectedRef.current) {
+            justSelectedRef.current = false
+            return
+        }
+
         const timer = setTimeout(async () => {
             if (query.length < 3) {
                 setResults([])
@@ -69,7 +77,9 @@ function LocationSearch({ onLocationSelect, reset }) {
         const name = props.name || `${props.housenumber || ''} ${props.street || ''}`.trim() || feature.properties.formatted
         const coords = feature.geometry.coordinates
 
+        justSelectedRef.current = true // Mark that user just selected
         setQuery(name)
+        setResults([]) // Clear results immediately to prevent re-search
         setIsOpen(false)
         onLocationSelect({
             lat: coords[1], // GeoJSON is [lon, lat]

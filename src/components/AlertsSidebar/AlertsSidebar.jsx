@@ -1,11 +1,25 @@
 import './AlertsSidebar.css'
 
-function AlertsSidebar({ alerts, isOpen, onClose }) {
+function AlertsSidebar({ alerts, isOpen, onClose, transitMode, selectedRoutes }) {
+    // Get mode-specific header
+    const getModeHeader = () => {
+        switch (transitMode) {
+            case 'subway':
+                return 'Tram Service Alerts'
+            case 'bus':
+                return 'Bus Service Alerts'
+            case 'rail':
+                return 'Rail Service Alerts'
+            default:
+                return 'Service Alerts'
+        }
+    }
+
     return (
         <>
             <aside className={`alerts-sidebar ${isOpen ? '' : 'collapsed'}`}>
                 <div className="alerts-sidebar-header">
-                    <h2>Service Alerts</h2>
+                    <h2>{getModeHeader()}</h2>
                     <button className="close-btn" onClick={onClose} aria-label="Close alerts">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M18 6L6 18M6 6l12 12" />

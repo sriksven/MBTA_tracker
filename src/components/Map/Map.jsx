@@ -57,7 +57,8 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
 
     // Switch map tiles based on transport mode
     useEffect(() => {
-        return; // DISABLED: Keep dark theme always
+        return; // DISABLED: Keep CARTO Dark theme always for consistency
+
         if (!mapInstanceRef.current || !tileLayerRef.current) return
 
         const mode = searchRoute?.mode || 'transit'
@@ -65,15 +66,15 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
         // Map tile configurations for each mode
         const tileConfigs = {
             'walking': {
-                url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a>'
+                url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             },
             'biking': {
-                url: 'https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png',
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors | Map style: <a href="https://www.cyclosm.org">CyclOSM</a>'
+                url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
             },
             'driving': {
-                url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+                url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
                 attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
             },
             'transit': {
@@ -279,12 +280,27 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
         routeLinesRef.current = {}
         Object.entries(routeLines).forEach(([routeId, routeData]) => {
             if (!selectedRoutes.has(routeId)) return
+
+            // Use ONE color per transit mode for cleaner look
+            let lineColor
+
+            if (routeId.startsWith('CR-')) {
+                // Commuter Rail: Purple
+                lineColor = '#9D4EDD'
+            } else if (routeData.color === '#FFC72C') {
+                // Bus routes: Yellow
+                lineColor = '#FFD700'
+            } else {
+                // Tram lines: Keep original colors (Red, Orange, Blue, Green)
+                lineColor = routeData.color
+            }
+
             const layerGroup = L.layerGroup().addTo(mapInstanceRef.current)
             routeData.polylines.forEach(coordinates => {
                 const polyline = L.polyline(coordinates, {
-                    color: routeData.color,
-                    weight: 2,
-                    opacity: 0.8,
+                    color: lineColor,
+                    weight: 4,
+                    opacity: 0.9,
                     smoothFactor: 1,
                 })
                 layerGroup.addLayer(polyline)
@@ -616,9 +632,12 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
             }
         })
 
+        console.log(`Rendering ${vehicles.length} vehicles on map`)
         vehicles.forEach(vehicle => {
             const existingMarker = vehicleMarkersRef.current[vehicle.id]
             const routeColor = vehicle.route?.color || '#4299e1'
+
+            console.log(`Vehicle ${vehicle.id}: Route ${vehicle.route?.id}, Position: [${vehicle.latitude}, ${vehicle.longitude}]`)
 
             if (existingMarker) {
                 existingMarker.setLatLng([vehicle.latitude, vehicle.longitude])
@@ -627,15 +646,15 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
                 const currentIconHtml = existingMarker.options.icon.options.html;
                 const newIconHtml = `
             <div class="vehicle-marker-inner" style="
-              width: 24px;
-              height: 24px;
+              width: 32px;
+              height: 32px;
               transform: rotate(${vehicle.bearing || 0}deg);
               display: flex;
               align-items: center;
               justify-content: center;
-              filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+              filter: drop-shadow(0 0 8px rgba(255,255,255,0.8)) drop-shadow(0 2px 4px rgba(0,0,0,0.5));
             ">
-              <svg width="24" height="24" viewBox="0 0 24 24">
+              <svg width="32" height="32" viewBox="0 0 24 24">
                 <path d="M12 2L3 22L12 17L21 22L12 2Z" fill="white" stroke="${routeColor}" stroke-width="2" stroke-linejoin="round"/>
               </svg>
             </div>
@@ -644,8 +663,8 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
                     const newIcon = L.divIcon({
                         className: 'custom-vehicle-marker',
                         html: newIconHtml,
-                        iconSize: [24, 24],
-                        iconAnchor: [12, 12],
+                        iconSize: [32, 32],
+                        iconAnchor: [16, 16],
                     });
                     existingMarker.setIcon(newIcon);
                 }
@@ -654,21 +673,21 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
                     className: 'custom-vehicle-marker',
                     html: `
             <div class="vehicle-marker-inner" style="
-              width: 24px;
-              height: 24px;
+              width: 32px;
+              height: 32px;
               transform: rotate(${vehicle.bearing || 0}deg);
               display: flex;
               align-items: center;
               justify-content: center;
-              filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+              filter: drop-shadow(0 0 8px rgba(255,255,255,0.8)) drop-shadow(0 2px 4px rgba(0,0,0,0.5));
             ">
-              <svg width="24" height="24" viewBox="0 0 24 24">
+              <svg width="32" height="32" viewBox="0 0 24 24">
                 <path d="M12 2L3 22L12 17L21 22L12 2Z" fill="white" stroke="${routeColor}" stroke-width="2" stroke-linejoin="round"/>
               </svg>
             </div>
           `,
-                    iconSize: [24, 24],
-                    iconAnchor: [12, 12],
+                    iconSize: [32, 32],
+                    iconAnchor: [16, 16],
                 })
 
                 const marker = L.marker([vehicle.latitude, vehicle.longitude], {

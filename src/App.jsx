@@ -25,8 +25,7 @@ function App() {
     const [customLocation, setCustomLocation] = useState(null)
     const [lastUpdate, setLastUpdate] = useState(null)
     const [loading, setLoading] = useState(true)
-
-    // No filter state needed - buses are hardcoded to be excluded
+    const [transitMode, setTransitMode] = useState('subway') // 'subway', 'bus', 'rail'
 
     // Load initial data
     useEffect(() => {
@@ -34,25 +33,30 @@ function App() {
             try {
                 setLoading(true)
 
-                // Load only non-bus routes (exclude type 3)
+                // Load ALL routes (including buses now)
                 const allRoutes = await MBTAService.getRoutes()
-                const nonBusRoutes = allRoutes.filter(r => r.type !== 3)
-                setRoutes(nonBusRoutes)
+                setRoutes(allRoutes)
 
-                // Auto-select subway routes only (type 0 and 1) by default
-                const subwayRoutes = nonBusRoutes.filter(r => r.type === 0 || r.type === 1)
-                const selectedIds = new Set(subwayRoutes.map(r => r.id))
+                // Filter routes based on current transit mode
+                const filteredRoutes = filterRoutesByMode(allRoutes, transitMode)
+                console.log(`Transit mode: ${transitMode}, Filtered routes:`, filteredRoutes)
+                const selectedIds = new Set(filteredRoutes.map(r => r.id))
                 setSelectedRoutes(selectedIds)
 
                 // Load route shapes for initially selected routes
                 const shapes = {}
-                for (const route of subwayRoutes) {
+                for (const route of filteredRoutes) {
+                    console.log(`Fetching shape for route: ${route.id} (${route.name})`)
                     const shape = await MBTAService.getRouteShape(route.id)
                     if (shape) {
                         shape.color = route.color
                         shapes[route.id] = shape
+                        console.log(`✓ Shape loaded for ${route.id}:`, shape)
+                    } else {
+                        console.log(`✗ No shape data for ${route.id}`)
                     }
                 }
+                console.log('All route shapes:', shapes)
                 setRouteLines(shapes)
 
                 // Load alerts
@@ -67,9 +71,31 @@ function App() {
         }
 
         loadInitialData()
-    }, [])
+    }, [transitMode]) // Reload when transit mode changes
 
-    // All selected routes are already non-bus (filtered on load)
+    // Helper function to filter routes by transit mode
+    const filterRoutesByMode = (allRoutes, mode) => {
+        switch (mode) {
+            case 'subway':
+                // Type 0 = Light Rail, Type 1 = Heavy Rail (Subway)
+                return allRoutes.filter(r => r.type === 0 || r.type === 1)
+            case 'bus':
+                // Type 3 = Bus
+                return allRoutes.filter(r => r.type === 3)
+            case 'rail':
+                // Type 2 = Commuter Rail
+                return allRoutes.filter(r => r.type === 2)
+            default:
+                return []
+        }
+    }
+
+    // Filter routes for current transit mode (for display in RouteSelector)
+    const filteredRoutes = useMemo(() => {
+        return filterRoutesByMode(routes, transitMode)
+    }, [routes, transitMode])
+
+    // All selected routes are already filtered by mode
     const effectiveSelectedRoutes = useMemo(() => {
         return selectedRoutes
     }, [selectedRoutes])
@@ -153,9 +179,9 @@ function App() {
     }
 
     const handleResetRoutes = () => {
-        // Reset to default: only subway routes (type 0 and 1)
-        const subwayRoutes = routes.filter(r => r.type === 0 || r.type === 1)
-        const selectedIds = new Set(subwayRoutes.map(r => r.id))
+        // Reset to all routes for the current transit mode
+        const filteredRoutes = filterRoutesByMode(routes, transitMode)
+        const selectedIds = new Set(filteredRoutes.map(r => r.id))
         setSelectedRoutes(selectedIds)
     }
 
@@ -191,6 +217,8 @@ function App() {
                 onCustomLocation={handleCustomLocation}
                 searchRoute={searchRoute}
                 onClearRoute={handleClearRoute}
+                transitMode={transitMode}
+                onTransitModeChange={setTransitMode}
             />
 
             <div className="app-content">
@@ -201,6 +229,7 @@ function App() {
                     onRouteSearch={handleRouteSearch}
                     onClearRoute={handleClearRoute}
                     hasActiveRoute={!!searchRoute}
+                    transitMode={transitMode}
                 />
 
                 <Map
@@ -219,16 +248,19 @@ function App() {
                     alerts={alerts}
                     isOpen={showAlertsSidebar}
                     onClose={() => setShowAlertsSidebar(false)}
+                    transitMode={transitMode}
+                    selectedRoutes={selectedRoutes}
                 />
 
                 <RouteSelector
-                    routes={routes}
+                    routes={filteredRoutes}
                     selectedRoutes={selectedRoutes}
                     onToggleRoute={handleToggleRoute}
                     onRefresh={handleRefresh}
                     onResetRoutes={handleResetRoutes}
                     isOpen={showRouteSelector}
                     onClose={() => setShowRouteSelector(false)}
+                    transitMode={transitMode}
                 />
             </div>
 

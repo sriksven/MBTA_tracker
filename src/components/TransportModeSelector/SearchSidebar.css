@@ -240,7 +240,8 @@
     border: 2px solid var(--accent);
     border-radius: var(--radius-md);
     margin-top: 4px;
-    max-height: 200px;
+    max-height: 300px;
+    /* Increased for more stations */
     overflow-y: auto;
     z-index: 1000;
     box-shadow: var(--shadow-lg);
