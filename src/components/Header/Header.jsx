@@ -3,15 +3,15 @@ import './Header.css'
 
 function Header({
     vehicleCount,
-    alertCount,
     lastUpdate,
     isLocationEnabled,
     onToggleLocation,
-    onCustomLocation,
     searchRoute,
     onClearRoute,
     transitMode,
-    onTransitModeChange
+    onTransitModeChange,
+    loading,
+    onBrowseClick
 }) {
     const [timeString, setTimeString] = useState('--:--:--')
 
@@ -28,36 +28,38 @@ function Header({
     return (
         <header className="header">
             <div className="header-content">
-                <div className="logo">
-                    <svg className="logo-icon-svg" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="50" cy="50" r="45" stroke="currentColor" strokeWidth="8" />
-                        <path d="M25 25H75V40H58V75H42V40H25V25Z" fill="currentColor" />
-                    </svg>
-                    <h1>MBTA Live Tracker</h1>
-                </div>
+                <div className="header-left">
+                    <div className="logo">
+                        <svg className="logo-icon-svg" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="50" cy="50" r="45" stroke="currentColor" strokeWidth="8" />
+                            <path d="M25 25H75V40H58V75H42V40H25V25Z" fill="currentColor" />
+                        </svg>
+                        <h1>MBTA Live Tracker</h1>
+                    </div>
 
-                <div className="transit-mode-nav">
-                    <button
-                        className={`transit-mode-btn ${transitMode === 'subway' ? 'active' : ''}`}
-                        onClick={() => onTransitModeChange('subway')}
-                        title="Tram Lines"
-                    >
-                        🚊 Tram
-                    </button>
-                    <button
-                        className={`transit-mode-btn ${transitMode === 'bus' ? 'active' : ''}`}
-                        onClick={() => onTransitModeChange('bus')}
-                        title="Bus Routes"
-                    >
-                        🚌 Bus
-                    </button>
-                    <button
-                        className={`transit-mode-btn ${transitMode === 'rail' ? 'active' : ''}`}
-                        onClick={() => onTransitModeChange('rail')}
-                        title="Commuter Rail"
-                    >
-                        🚆 Rail
-                    </button>
+                    <div className="transit-mode-nav">
+                        <button
+                            className={`transit-mode-btn ${transitMode === 'subway' ? 'active' : ''}`}
+                            onClick={() => onTransitModeChange('subway')}
+                            title="Subway & Light Rail Lines"
+                        >
+                            🚇 Subway
+                        </button>
+                        <button
+                            className={`transit-mode-btn ${transitMode === 'bus' ? 'active' : ''}`}
+                            onClick={() => onTransitModeChange('bus')}
+                            title="Bus Routes"
+                        >
+                            🚌 Bus
+                        </button>
+                        <button
+                            className={`transit-mode-btn ${transitMode === 'rail' ? 'active' : ''}`}
+                            onClick={() => onTransitModeChange('rail')}
+                            title="Commuter Rail"
+                        >
+                            🚆 Rail
+                        </button>
+                    </div>
                 </div>
 
                 <div className="header-actions">
@@ -77,6 +79,19 @@ function Header({
                         <span className="location-btn-text">{isLocationEnabled ? 'My Location' : 'Locate Me'}</span>
                     </button>
 
+                    <button
+                        className="browse-btn"
+                        onClick={onBrowseClick}
+                        title="Browse all routes and stops"
+                        aria-label="Browse routes"
+                    >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                            <polyline points="9 22 9 12 15 12 15 22" />
+                        </svg>
+                        <span className="browse-btn-text">Browse</span>
+                    </button>
+
                     {searchRoute && (
                         <button
                             className="stop-route-header-btn"
@@ -93,6 +108,16 @@ function Header({
                     )}
 
                     <div className="header-stats">
+                        {loading && (
+                            <div className="stat-item loading-indicator">
+                                <span className="stat-label">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: '4px', verticalAlign: 'text-top', animation: 'spin 1s linear infinite' }}>
+                                        <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                                    </svg>
+                                    Loading...
+                                </span>
+                            </div>
+                        )}
                         <div className="stat-item">
                             <span className="stat-label">
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: '4px', verticalAlign: 'text-top' }}>

@@ -1,0 +1,198 @@
+.nearby-button-container {
+    position: relative;
+}
+
+.nearby-button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: rgba(26, 32, 44, 0.95);
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
+    color: #fff;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(10px);
+}
+
+.nearby-button:hover {
+    background: rgba(66, 153, 225, 0.9);
+    border-color: rgba(66, 153, 225, 0.8);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(66, 153, 225, 0.4);
+}
+
+.nearby-button.active {
+    background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
+    border-color: #4299e1;
+    box-shadow: 0 6px 20px rgba(66, 153, 225, 0.5);
+}
+
+.nearby-button svg {
+    transition: transform 0.3s;
+}
+
+.nearby-button:hover svg {
+    transform: scale(1.1);
+}
+
+.nearby-label {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.nearby-panel {
+    position: absolute;
+    top: calc(100% + 10px);
+    left: 0;
+    width: 320px;
+    max-height: 400px;
+    background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+    animation: slideDown 0.3s ease-out;
+    z-index: 1000;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.nearby-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 18px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 12px 12px 0 0;
+}
+
+.nearby-panel-header h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+}
+
+.close-nearby {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: #fff;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.close-nearby:hover {
+    background: rgba(255, 77, 77, 0.8);
+    transform: rotate(90deg);
+}
+
+.nearby-panel-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+}
+
+.nearby-panel-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.nearby-panel-content::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 3px;
+}
+
+.nearby-panel-content::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+}
+
+.nearby-loading,
+.nearby-empty {
+    text-align: center;
+    padding: 30px 20px;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 13px;
+}
+
+.nearby-stops-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.nearby-stop-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.nearby-stop-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateX(4px);
+}
+
+.nearby-stop-info {
+    flex: 1;
+}
+
+.nearby-stop-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 2px;
+}
+
+.nearby-stop-type {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.nearby-stop-distance {
+    font-size: 12px;
+    font-weight: 700;
+    color: #4299e1;
+    background: rgba(66, 153, 225, 0.15);
+    padding: 4px 8px;
+    border-radius: 6px;
+}
+
+@media (max-width: 768px) {
+    .nearby-panel {
+        width: 280px;
+    }
+
+    .nearby-label {
+        display: none;
+    }
+
+    .nearby-button {
+        padding: 10px;
+    }
+}

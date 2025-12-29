@@ -1,3 +1,5 @@
+/* eslint-disable */
+// LEGACY FILE: This file is not used in the React app. It's kept for reference only.
 // MBTA API Configuration
 const MBTA_API_KEY = 'd5dbafa546244e839c05bc7e3d5955d4';
 const MBTA_API_BASE = 'https://api-v3.mbta.com';

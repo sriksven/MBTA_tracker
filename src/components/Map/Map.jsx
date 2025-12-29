@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import L from 'leaflet'
 import { MBTAService } from '../../services/mbta.service'
+import { formatVehicleStatus, formatSpeed } from '../../utils/formatters'
+import NearbyButton from '../NearbyButton/NearbyButton'
 import 'leaflet/dist/leaflet.css'
 import './Map.css'
 
@@ -12,7 +14,7 @@ L.Icon.Default.mergeOptions({
     shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
 })
 
-function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, showLocation, customLocation, searchRoute }) {
+function Map({ vehicles, stops, routeLines, selectedRoutes, loading, showLocation, customLocation, searchRoute, isBrowsingMode, onStopBrowsing, isNearbyMode, onStopNearby, onEnterNearbyMode }) {
     const mapRef = useRef(null)
     const mapInstanceRef = useRef(null)
     const vehicleMarkersRef = useRef({})
@@ -28,11 +30,12 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
 
     // New Feature State
     const [followedVehicleId, setFollowedVehicleId] = useState(null)
+    const [mapCenter, setMapCenter] = useState({ lat: 42.3601, lng: -71.0589 })
 
     // Initialize map
     useEffect(() => {
         if (!mapInstanceRef.current) {
-            mapInstanceRef.current = L.map(mapRef.current).setView([42.3601, -71.0589], 12)
+            mapInstanceRef.current = L.map(mapRef.current).setView([42.3601, -71.0589], 13)
 
             // Start with default dark theme for transit
             tileLayerRef.current = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
@@ -45,6 +48,12 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
             // Stop following when user interacts with map
             mapInstanceRef.current.on('dragstart', () => setFollowedVehicleId(null))
             mapInstanceRef.current.on('zoomstart', () => setFollowedVehicleId(null))
+
+            // Track map center for nearby feature
+            mapInstanceRef.current.on('moveend', () => {
+                const center = mapInstanceRef.current.getCenter()
+                setMapCenter({ lat: center.lat, lng: center.lng })
+            })
         }
 
         return () => {
@@ -55,46 +64,74 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
         }
     }, [])
 
-    // Switch map tiles based on transport mode
+    // Comprehensive cleanup when selectedRoutes changes (e.g., switching transit modes)
+    // Convert Set to sorted array for proper React dependency detection
+    const selectedRoutesArray = Array.from(selectedRoutes).sort().join(',')
+
     useEffect(() => {
-        return; // DISABLED: Keep CARTO Dark theme always for consistency
+        if (!mapInstanceRef.current) return
 
-        if (!mapInstanceRef.current || !tileLayerRef.current) return
+        console.log('Clearing map for transit mode switch...', selectedRoutesArray)
 
-        const mode = searchRoute?.mode || 'transit'
+        // AGGRESSIVE CLEANUP: Remove ALL layers except the tile layer
+        mapInstanceRef.current.eachLayer((layer) => {
+            // Keep only the tile layer and user location marker
+            if (layer !== tileLayerRef.current && layer !== userMarkerRef.current) {
+                try {
+                    // Close any popups/tooltips
+                    if (layer.closePopup) layer.closePopup()
+                    if (layer.unbindTooltip) layer.unbindTooltip()
+                    if (layer.unbindPopup) layer.unbindPopup()
+                    if (layer.clearLayers) layer.clearLayers()
 
-        // Map tile configurations for each mode
-        const tileConfigs = {
-            'walking': {
-                url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            },
-            'biking': {
-                url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-            },
-            'driving': {
-                url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-            },
-            'transit': {
-                url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                    // Remove from map
+                    mapInstanceRef.current.removeLayer(layer)
+                } catch (e) {
+                    console.warn('Error removing layer:', e)
+                }
+            }
+        })
+
+        // Clear all refs
+        stopMarkersRef.current = {}
+        vehicleMarkersRef.current = {}
+        routeLinesRef.current = {}
+        walkingPathRef.current = null
+        searchRouteRef.current = null
+
+        // Cancel any ongoing animations
+        if (animationFrameRef.current) {
+            cancelAnimationFrame(animationFrameRef.current)
+            animationFrameRef.current = null
+        }
+        if (searchRouteAnimationRef.current) {
+            cancelAnimationFrame(searchRouteAnimationRef.current)
+            searchRouteAnimationRef.current = null
+        }
+
+        console.log('Map completely cleared - all non-tile layers removed')
+    }, [selectedRoutesArray])
+
+    // Listen for focusStop events from Browse panel
+    useEffect(() => {
+        const handleFocusStop = (event) => {
+            const stop = event.detail
+            const marker = stopMarkersRef.current[stop.id]
+            if (marker && mapInstanceRef.current) {
+                mapInstanceRef.current.flyTo([stop.latitude, stop.longitude], 16)
+                setTimeout(() => marker.openPopup(), 500)
             }
         }
 
-        const config = tileConfigs[mode] || tileConfigs['transit']
+        window.addEventListener('focusStop', handleFocusStop)
+        return () => window.removeEventListener('focusStop', handleFocusStop)
+    }, [])
 
-        // Remove old tile layer
-        mapInstanceRef.current.removeLayer(tileLayerRef.current)
-
-        // Add new tile layer
-        tileLayerRef.current = L.tileLayer(config.url, {
-            attribution: config.attribution,
-            subdomains: 'abc',
-            maxZoom: 19,
-        }).addTo(mapInstanceRef.current)
-
+    // Switch map tiles based on transport mode
+    // DISABLED: Keep CARTO Dark theme always for consistency
+    useEffect(() => {
+        // Tile switching is disabled to maintain consistent dark theme
+        // If needed in the future, implement tile switching logic here
     }, [searchRoute?.mode])
 
     // Handle Geolocation & Custom Location
@@ -402,29 +439,26 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
     useEffect(() => {
         if (!mapInstanceRef.current) return
 
-        Object.values(stopMarkersRef.current).forEach(marker => mapInstanceRef.current.removeLayer(marker))
+        // Properly cleanup old markers including tooltips and popups
+        Object.values(stopMarkersRef.current).forEach(marker => {
+            marker.closePopup()
+            marker.unbindTooltip()
+            marker.unbindPopup()
+            mapInstanceRef.current.removeLayer(marker)
+        })
         stopMarkersRef.current = {}
 
         stops.forEach(stop => {
-            const icon = L.divIcon({
-                className: 'custom-stop-marker',
-                html: `
-          <div style="
-            width: 12px;
-            height: 12px;
-            background: white;
-            border: 2px solid #333;
-            border-radius: 50%;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.4);
-            cursor: pointer;
-            transition: transform 0.2s ease;
-          "></div>
-        `,
-                iconSize: [12, 12],
-                iconAnchor: [6, 6],
-            })
-
-            const marker = L.marker([stop.latitude, stop.longitude], { icon }).addTo(mapInstanceRef.current)
+            // Use CircleMarker for better performance with many points
+            const marker = L.circleMarker([stop.latitude, stop.longitude], {
+                radius: 4, // 8px diameter
+                fillColor: 'white',
+                color: '#333',
+                weight: 1.5,
+                opacity: 1,
+                fillOpacity: 1,
+                className: 'custom-stop-marker'
+            }).addTo(mapInstanceRef.current)
 
             const baseContent = `
                 <div class="popup-content" style="padding: 2px;">
@@ -442,8 +476,8 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
             marker.bindPopup(baseContent, { minWidth: 170 })
 
             marker.on('popupopen', async () => {
-                // Only draw walking path if there's no active search route
-                if (!searchRoute) {
+                // Only draw walking path if user location is enabled and there's no active search route
+                if (!searchRoute && showLocation) {
                     drawWalkingPath(stop.latitude, stop.longitude)
                 }
 
@@ -501,6 +535,11 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
                     if (routeType === 3) return
                     if (routeId && ['8', '57', '60', '1', '15', '22', '23', '28', '39', '66', '71', '73', '77', '111', '116', '117'].includes(routeId)) {
                         console.log(`Filtering out bus route: ${routeId}`)
+                        return
+                    }
+
+                    // Filter to only show predictions for currently selected routes
+                    if (routeId && !selectedRoutes.has(routeId)) {
                         return
                     }
 
@@ -617,6 +656,7 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
 
             stopMarkersRef.current[stop.id] = marker
         })
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [stops])
 
     // Update vehicle markers
@@ -627,7 +667,10 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
 
         Object.keys(vehicleMarkersRef.current).forEach(vehicleId => {
             if (!activeVehicleIds.has(vehicleId)) {
-                mapInstanceRef.current.removeLayer(vehicleMarkersRef.current[vehicleId])
+                const marker = vehicleMarkersRef.current[vehicleId]
+                marker.closePopup()
+                marker.unbindPopup()
+                mapInstanceRef.current.removeLayer(marker)
                 delete vehicleMarkersRef.current[vehicleId]
             }
         })
@@ -695,16 +738,18 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
                     zIndexOffset: 1000
                 }).addTo(mapInstanceRef.current)
 
+                const formattedStatus = formatVehicleStatus(vehicle.status)
+                const formattedSpeed = formatSpeed(vehicle.speed)
                 const popupContent = `
           <div class="popup-content">
             <div class="popup-title">${vehicle.route?.name || 'Vehicle'}</div>
             <div class="popup-info">
-              <strong>Status:</strong> ${vehicle.status || 'In Transit'}<br>
+              <strong>Status:</strong> ${formattedStatus}<br>
               ${vehicle.stop ? `<strong>Current Stop:</strong> ${vehicle.stop.name}<br>` : ''}
               ${vehicle.trip ? `<strong>Direction:</strong> ${vehicle.trip.headsign || 'N/A'}<br>` : ''}
-              <strong>Speed:</strong> ${vehicle.speed ? `${Math.round(vehicle.speed * 2.237)} mph` : 'N/A'}
+              ${formattedSpeed ? `<strong>Speed:</strong> ${formattedSpeed}<br>` : ''}
               <div class="vehicle-follow-hint" style="margin-top: 8px; font-size: 0.8em; color: #666; font-style: italic;">
-                (Tracking this vehicle)
+                Click map to stop tracking
               </div>
             </div>
           </div>
@@ -859,6 +904,14 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
         drawSearchRoute()
     }, [searchRoute, customLocation, showLocation])
 
+    const handleNearbyStopSelect = (stop) => {
+        const marker = stopMarkersRef.current[stop.id]
+        if (marker && mapInstanceRef.current) {
+            mapInstanceRef.current.flyTo([stop.latitude, stop.longitude], 16)
+            setTimeout(() => marker.openPopup(), 500)
+        }
+    }
+
     return (
         <div className="map-wrapper">
             <button className="map-refresh-btn" onClick={() => window.location.reload()} aria-label="Refresh app">
@@ -867,6 +920,40 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, onRefresh, 
                 </svg>
                 <span>Refresh</span>
             </button>
+
+            {/* Map Controls - Top Left */}
+            <div className="map-controls">
+                {isBrowsingMode && (
+                    <button
+                        className="stop-browsing-btn"
+                        onClick={onStopBrowsing}
+                        title="Exit browse mode"
+                    >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M19 12H5M12 19l-7-7 7-7" />
+                        </svg>
+                        <span>Stop Browsing</span>
+                    </button>
+                )}
+                {isNearbyMode && (
+                    <button
+                        className="stop-nearby-btn"
+                        onClick={onStopNearby}
+                        title="Exit nearby mode"
+                    >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M19 12H5M12 19l-7-7 7-7" />
+                        </svg>
+                        <span>Stop Nearby</span>
+                    </button>
+                )}
+                <NearbyButton
+                    mapCenter={mapCenter}
+                    onStopSelect={handleNearbyStopSelect}
+                    onEnterNearbyMode={onEnterNearbyMode}
+                />
+            </div>
+
             <div ref={mapRef} className="map" />
             {loading && (
                 <div className="map-loading">

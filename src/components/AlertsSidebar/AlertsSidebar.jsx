@@ -1,11 +1,11 @@
 import './AlertsSidebar.css'
 
-function AlertsSidebar({ alerts, isOpen, onClose, transitMode, selectedRoutes }) {
+function AlertsSidebar({ alerts, isOpen, onClose, transitMode }) {
     // Get mode-specific header
     const getModeHeader = () => {
         switch (transitMode) {
             case 'subway':
-                return 'Tram Service Alerts'
+                return 'Subway Service Alerts'
             case 'bus':
                 return 'Bus Service Alerts'
             case 'rail':

@@ -5,6 +5,7 @@ import RouteSelector from './components/RouteSelector/RouteSelector'
 import AlertsSidebar from './components/AlertsSidebar/AlertsSidebar'
 import SidebarToggle from './components/SidebarToggle/SidebarToggle'
 import SearchSidebar from './components/TransportModeSelector/TransportModeSelector'
+import BrowsePanel from './components/BrowsePanel/BrowsePanel'
 import { MBTAService } from './services/mbta.service'
 import './App.css'
 
@@ -20,6 +21,10 @@ function App() {
     const [showRouteSelector, setShowRouteSelector] = useState(false)
     const [showAlertsSidebar, setShowAlertsSidebar] = useState(false)
     const [showSearchSidebar, setShowSearchSidebar] = useState(false)
+    const [showBrowsePanel, setShowBrowsePanel] = useState(false)
+    const [isBrowsingMode, setIsBrowsingMode] = useState(false) // Track if in browse mode
+    const [browsedRoute, setBrowsedRoute] = useState(null) // Store the browsed route info
+    const [isNearbyMode, setIsNearbyMode] = useState(false) // Track if in nearby mode
     const [searchRoute, setSearchRoute] = useState(null)
     const [isLocationEnabled, setIsLocationEnabled] = useState(true)
     const [customLocation, setCustomLocation] = useState(null)
@@ -30,9 +35,13 @@ function App() {
     // Load initial data
     useEffect(() => {
         const loadInitialData = async () => {
-            try {
-                setLoading(true)
+            // IMMEDIATELY set loading and clear old data BEFORE any async operations
+            setLoading(true)
+            setStops([])
+            setVehicles([])
+            setRouteLines({})
 
+            try {
                 // Load ALL routes (including buses now)
                 const allRoutes = await MBTAService.getRoutes()
                 setRoutes(allRoutes)
@@ -43,24 +52,34 @@ function App() {
                 const selectedIds = new Set(filteredRoutes.map(r => r.id))
                 setSelectedRoutes(selectedIds)
 
-                // Load route shapes for initially selected routes
-                const shapes = {}
-                for (const route of filteredRoutes) {
-                    console.log(`Fetching shape for route: ${route.id} (${route.name})`)
+                // Load route shapes for initially selected routes IN PARALLEL
+                console.log(`Fetching shapes for ${filteredRoutes.length} routes in parallel...`)
+                const shapePromises = filteredRoutes.map(async (route) => {
                     const shape = await MBTAService.getRouteShape(route.id)
                     if (shape) {
                         shape.color = route.color
-                        shapes[route.id] = shape
-                        console.log(`✓ Shape loaded for ${route.id}:`, shape)
+                        console.log(`✓ Shape loaded for ${route.id}`)
+                        return { routeId: route.id, shape }
                     } else {
                         console.log(`✗ No shape data for ${route.id}`)
+                        return null
                     }
-                }
-                console.log('All route shapes:', shapes)
-                setRouteLines(shapes)
+                })
 
-                // Load alerts
-                const alertsData = await MBTAService.getAlerts()
+                // Load shapes and alerts in parallel
+                const [shapeResults, alertsData] = await Promise.all([
+                    Promise.all(shapePromises),
+                    MBTAService.getAlerts()
+                ])
+
+                const shapes = {}
+                shapeResults.forEach(result => {
+                    if (result) {
+                        shapes[result.routeId] = result.shape
+                    }
+                })
+                console.log(`All ${Object.keys(shapes).length} route shapes loaded`)
+                setRouteLines(shapes)
                 setAlerts(alertsData)
 
                 setLoading(false)
@@ -70,8 +89,14 @@ function App() {
             }
         }
 
+        // Don't reload if in browse or nearby mode - preserve the current view
+        if (isBrowsingMode || isNearbyMode) {
+            return
+        }
+
         loadInitialData()
-    }, [transitMode]) // Reload when transit mode changes
+    }, [transitMode, isBrowsingMode, isNearbyMode]) // Reload when transit mode changes (but not in browse/nearby mode)
+
 
     // Helper function to filter routes by transit mode
     const filterRoutesByMode = (allRoutes, mode) => {
@@ -80,7 +105,7 @@ function App() {
                 // Type 0 = Light Rail, Type 1 = Heavy Rail (Subway)
                 return allRoutes.filter(r => r.type === 0 || r.type === 1)
             case 'bus':
-                // Type 3 = Bus
+                // Type 3 = Bus - Show ALL bus routes
                 return allRoutes.filter(r => r.type === 3)
             case 'rail':
                 // Type 2 = Commuter Rail
@@ -104,20 +129,31 @@ function App() {
     useEffect(() => {
         const loadStops = async () => {
             if (effectiveSelectedRoutes.size === 0) {
+                console.log('No routes selected, clearing stops')
                 setStops([])
                 return
             }
 
             try {
+                console.log(`Loading stops for ${transitMode} mode, routes:`, Array.from(effectiveSelectedRoutes))
                 const stopsData = await MBTAService.getStopsForRoutes(Array.from(effectiveSelectedRoutes))
-                setStops(stopsData)
+
+                // Filter out bus stops when in subway/rail mode
+                let filteredStops = stopsData
+                if (transitMode === 'subway' || transitMode === 'rail') {
+                    // Only show stations (location_type 1) for subway/rail, not individual bus stops
+                    filteredStops = stopsData.filter(stop => stop.type === 'Station')
+                }
+
+                console.log(`Loaded ${filteredStops.length} stops for ${transitMode} mode (filtered from ${stopsData.length})`)
+                setStops(filteredStops)
             } catch (error) {
                 console.error('Error loading stops:', error)
             }
         }
 
         loadStops()
-    }, [effectiveSelectedRoutes])
+    }, [effectiveSelectedRoutes, transitMode])
 
     // Update vehicles
     useEffect(() => {
@@ -203,6 +239,113 @@ function App() {
         setSearchRoute(null)
     }
 
+    const handleBrowseStopSelect = async (stop, route, direction) => {
+        // Close browse panel
+        setShowBrowsePanel(false)
+
+        // Enter browsing mode
+        setIsBrowsingMode(true)
+        setBrowsedRoute({ route, stop, direction })
+
+        // Disable location by default in browse mode
+        setIsLocationEnabled(false)
+        setCustomLocation(null)
+
+        // AGGRESSIVELY CLEAR EVERYTHING FIRST
+        setStops([])
+        setVehicles([])
+        setRouteLines({})
+
+        // REPLACE all routes with only the selected route
+        const newSelected = new Set([route.id])
+        setSelectedRoutes(newSelected)
+
+        // Load route shape
+        const shape = await MBTAService.getRouteShape(route.id)
+        if (shape) {
+            shape.color = route.color
+            setRouteLines({ [route.id]: shape })
+        }
+
+        // Wait a bit for the map to update with the new route/stops
+        setTimeout(() => {
+            // Trigger the map to focus on this stop
+            const event = new CustomEvent('focusStop', { detail: stop })
+            window.dispatchEvent(event)
+        }, 800)
+    }
+
+    const handleStopBrowsing = async () => {
+        // Exit browsing mode and return to normal view
+        setIsBrowsingMode(false)
+        setBrowsedRoute(null)
+        setIsLocationEnabled(true)
+
+        // Clear everything first
+        setStops([])
+        setVehicles([])
+        setRouteLines({})
+
+        // Reload all routes for current transit mode
+        const filteredRoutes = filterRoutesByMode(routes, transitMode)
+        const selectedIds = new Set(filteredRoutes.map(r => r.id))
+        setSelectedRoutes(selectedIds)
+
+        // Load route shapes
+        const shapePromises = filteredRoutes.map(async (route) => {
+            const shape = await MBTAService.getRouteShape(route.id)
+            if (shape) {
+                shape.color = route.color
+                return { routeId: route.id, shape }
+            }
+            return null
+        })
+
+        const shapeResults = await Promise.all(shapePromises)
+        const shapes = {}
+        shapeResults.forEach(result => {
+            if (result) {
+                shapes[result.routeId] = result.shape
+            }
+        })
+        setRouteLines(shapes)
+    }
+
+    const handleStopNearby = async () => {
+        // Exit nearby mode and return to normal view
+        setIsNearbyMode(false)
+        setIsLocationEnabled(true)
+
+        // Clear everything first
+        setStops([])
+        setVehicles([])
+        setRouteLines({})
+
+        // Reload all routes for current transit mode
+        const filteredRoutes = filterRoutesByMode(routes, transitMode)
+        const selectedIds = new Set(filteredRoutes.map(r => r.id))
+        setSelectedRoutes(selectedIds)
+
+        // Load route shapes
+        const shapePromises = filteredRoutes.map(async (route) => {
+            const shape = await MBTAService.getRouteShape(route.id)
+            if (shape) {
+                shape.color = route.color
+                return { routeId: route.id, shape }
+            }
+            return null
+        })
+
+        const shapeResults = await Promise.all(shapePromises)
+        const shapes = {}
+        shapeResults.forEach(result => {
+            if (result) {
+                shapes[result.routeId] = result.shape
+            }
+        })
+        setRouteLines(shapes)
+    }
+
     return (
         <div className="app">
             <Header
@@ -211,6 +354,8 @@ function App() {
                 lastUpdate={lastUpdate}
                 isLocationEnabled={isLocationEnabled}
                 onToggleLocation={() => {
+                    if (isBrowsingMode) handleStopBrowsing() // Exit browse mode
+                    if (isNearbyMode) handleStopNearby() // Exit nearby mode
                     setIsLocationEnabled(!isLocationEnabled)
                     if (!isLocationEnabled) setCustomLocation(null)
                 }}
@@ -218,7 +363,14 @@ function App() {
                 searchRoute={searchRoute}
                 onClearRoute={handleClearRoute}
                 transitMode={transitMode}
-                onTransitModeChange={setTransitMode}
+                onTransitModeChange={(mode) => {
+                    if (isBrowsingMode) handleStopBrowsing() // Exit browse mode
+                    if (isNearbyMode) handleStopNearby() // Exit nearby mode
+                    console.log(`Transit mode changing from ${transitMode} to ${mode}`)
+                    setTransitMode(mode)
+                }}
+                loading={loading}
+                onBrowseClick={() => setShowBrowsePanel(true)}
             />
 
             <div className="app-content">
@@ -242,6 +394,11 @@ function App() {
                     showLocation={isLocationEnabled}
                     customLocation={customLocation}
                     searchRoute={searchRoute}
+                    isBrowsingMode={isBrowsingMode}
+                    onStopBrowsing={handleStopBrowsing}
+                    isNearbyMode={isNearbyMode}
+                    onStopNearby={handleStopNearby}
+                    onEnterNearbyMode={() => setIsNearbyMode(true)}
                 />
 
                 <AlertsSidebar
@@ -260,6 +417,13 @@ function App() {
                     onResetRoutes={handleResetRoutes}
                     isOpen={showRouteSelector}
                     onClose={() => setShowRouteSelector(false)}
+                    transitMode={transitMode}
+                />
+
+                <BrowsePanel
+                    isOpen={showBrowsePanel}
+                    onClose={() => setShowBrowsePanel(false)}
+                    onStopSelect={handleBrowseStopSelect}
                     transitMode={transitMode}
                 />
             </div>

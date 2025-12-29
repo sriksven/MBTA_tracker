@@ -20,6 +20,12 @@
     align-items: center;
 }
 
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-lg);
+}
+
 .header-actions {
     display: flex;
     align-items: center;
@@ -141,6 +147,22 @@
     text-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
 }
 
+/* Loading indicator animation */
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.loading-indicator {
+    color: #60a5fa;
+}
+
+
 
 /* Location Toggle Button */
 .location-toggle-btn {
@@ -187,6 +209,34 @@
 }
 
 .location-btn-text {
+    font-size: 0.9rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
+/* Browse Button */
+.browse-btn {
+    background: rgba(139, 92, 246, 0.1);
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    color: #a78bfa;
+    height: 40px;
+    padding: 0 16px;
+    border-radius: 9999px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.browse-btn:hover {
+    background: rgba(139, 92, 246, 0.2);
+    border-color: #a78bfa;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+}
+
+.browse-btn-text {
     font-size: 0.9rem;
     font-weight: 600;
     letter-spacing: 0.02em;
@@ -267,12 +317,21 @@
         border-radius: 50%;
     }
 
-    .location-btn-text {
+    .location-btn-text,
+    .browse-btn-text {
         display: none;
     }
 
     .location-toggle-btn svg {
         margin: 0;
+    }
+
+    .browse-btn {
+        padding: 0;
+        width: 36px;
+        height: 36px;
+        justify-content: center;
+        border-radius: 50%;
     }
 
     .stop-route-header-btn {

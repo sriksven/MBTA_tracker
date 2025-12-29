@@ -4,7 +4,6 @@ function RouteSelector({
     routes,
     selectedRoutes,
     onToggleRoute,
-    onRefresh,
     onResetRoutes,
     isOpen,
     onClose,
@@ -18,7 +17,7 @@ function RouteSelector({
     const getSectionHeader = () => {
         switch (transitMode) {
             case 'subway':
-                return 'Tram Lines'
+                return 'Subway & Light Rail'
             case 'bus':
                 return 'Bus Routes'
             case 'rail':
@@ -28,22 +27,7 @@ function RouteSelector({
         }
     }
 
-    // Clean up route badge text (remove CR- prefix)
-    const getRouteBadge = (route) => {
-        if (route.shortName) {
-            return route.shortName.replace(/^CR-/, '')
-        }
-        return route.id.replace(/^CR-/, '')
-    }
 
-    // Clean up route name (remove 'Line', 'Route', etc.)
-    const getRouteName = (name) => {
-        return name
-            .replace(/ Line$/i, '')           // Remove " Line" at the end
-            .replace(/ Route$/i, '')          // Remove " Route" at the end
-            .replace(/\/.+$/, '')             // Remove everything after "/" (e.g., "Fall River/New Bedford" -> "Fall River")
-            .trim()
-    }
 
     return (
         <aside className={`route-selector ${isOpen ? 'open' : ''}`}>

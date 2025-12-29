@@ -144,14 +144,59 @@ export const MBTAService = {
         if (routeIds.length === 0) return []
 
         try {
-            const routeFilter = routeIds.join(',')
-            const response = await fetch(`${MBTA_API_BASE}/stops?filter[route]=${routeFilter}&api_key=${MBTA_API_KEY}`)
-            const data = await response.json()
+            console.log(`Fetching stops for ${routeIds.length} routes:`, routeIds)
+
+            // If there are many routes (like buses), batch the requests to avoid URL length limits
+            const BATCH_SIZE = 15 // Increased from 5 to reduce number of requests
+            let allStops = []
+
+            if (routeIds.length > BATCH_SIZE) {
+                console.log(`Batching ${routeIds.length} routes into groups of ${BATCH_SIZE}`)
+                const promises = []
+
+                for (let i = 0; i < routeIds.length; i += BATCH_SIZE) {
+                    const batch = routeIds.slice(i, i + BATCH_SIZE)
+                    const routeFilter = batch.join(',')
+                    const url = `${MBTA_API_BASE}/stops?filter[route]=${routeFilter}&api_key=${MBTA_API_KEY}`
+
+                    // Add catch block to ensure one failure doesn't break all
+                    promises.push(
+                        fetch(url)
+                            .then(res => {
+                                if (!res.ok) throw new Error(`HTTP ${res.status}`)
+                                return res.json()
+                            })
+                            .catch(err => {
+                                console.warn(`Batch fetch failed for routes ${batch[0]}...`, err)
+                                return { data: [] } // Return empty result on failure
+                            })
+                    )
+                }
+
+                console.log(`Firing ${promises.length} parallel requests...`)
+                const results = await Promise.all(promises)
+
+                results.forEach(data => {
+                    if (data.data) {
+                        allStops.push(...data.data)
+                    }
+                })
+            } else {
+                const routeFilter = routeIds.join(',')
+                const response = await fetch(`${MBTA_API_BASE}/stops?filter[route]=${routeFilter}&api_key=${MBTA_API_KEY}`)
+                const data = await response.json()
+
+                if (data.data) {
+                    allStops = data.data
+                }
+            }
+
+            console.log(`Received ${allStops.length} total stops from API`)
 
             // Filter to unique locations
             const uniqueLocations = new Map()
 
-            data.data.forEach(stop => {
+            allStops.forEach(stop => {
                 const { latitude, longitude, location_type } = stop.attributes
                 if (!latitude || !longitude) return
 
@@ -170,7 +215,9 @@ export const MBTAService = {
                 }
             })
 
-            return Array.from(uniqueLocations.values())
+            const uniqueStopsArray = Array.from(uniqueLocations.values())
+            console.log(`Returning ${uniqueStopsArray.length} unique stops`)
+            return uniqueStopsArray
         } catch (error) {
             console.error('Error fetching stops:', error)
             return []
@@ -222,13 +269,60 @@ export const MBTAService = {
                         longName: route.attributes.long_name,
                         color: ROUTE_COLORS[route.id] || route.attributes.color || '#666666',
                         textColor: route.attributes.text_color || '000000',
-                        directionNames: route.attributes.direction_names || ['Outbound', 'Inbound']
+                        directionNames: route.attributes.direction_names || ['Outbound', 'Inbound'],
+                        type: route.attributes.type
                     } : null,
                     headsign: trip?.attributes?.headsign || 'Unknown Destination'
                 }
             }).filter(p => p.arrivalTime || p.departureTime)
         } catch (error) {
             console.error(`Error fetching predictions for stop ${stopId}:`, error)
+            return []
+        }
+    },
+
+    // Get stops by location (for nearby feature)
+    async getStopsByLocation(latitude, longitude, radiusKm = 0.5) {
+        try {
+            const response = await fetch(
+                `${MBTA_API_BASE}/stops?filter[latitude]=${latitude}&filter[longitude]=${longitude}&filter[radius]=${radiusKm}&api_key=${MBTA_API_KEY}`
+            )
+            const data = await response.json()
+
+            return data.data.map(stop => ({
+                id: stop.id,
+                name: stop.attributes.name,
+                latitude: stop.attributes.latitude,
+                longitude: stop.attributes.longitude,
+                type: stop.attributes.location_type === 1 ? 'Station' : 'Stop',
+                wheelchairAccessible: stop.attributes.wheelchair_boarding === 1,
+                description: stop.attributes.description
+            })).filter(s => s.latitude && s.longitude)
+        } catch (error) {
+            console.error('Error fetching stops by location:', error)
+            return []
+        }
+    },
+
+    // Get stops for a single route (for browse panel)
+    async getStops(routeId) {
+        try {
+            const response = await fetch(
+                `${MBTA_API_BASE}/stops?filter[route]=${routeId}&api_key=${MBTA_API_KEY}`
+            )
+            const data = await response.json()
+
+            return data.data.map(stop => ({
+                id: stop.id,
+                name: stop.attributes.name,
+                latitude: stop.attributes.latitude,
+                longitude: stop.attributes.longitude,
+                type: stop.attributes.location_type === 1 ? 'Station' : 'Stop',
+                wheelchairAccessible: stop.attributes.wheelchair_boarding === 1,
+                description: stop.attributes.description
+            })).filter(s => s.latitude && s.longitude)
+        } catch (error) {
+            console.error(`Error fetching stops for route ${routeId}:`, error)
             return []
         }
     }

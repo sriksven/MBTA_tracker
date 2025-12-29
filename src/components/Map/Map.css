@@ -9,6 +9,72 @@
     height: 100%;
 }
 
+/* Map Controls Container */
+.map-controls {
+    position: absolute;
+    top: 90px;
+    /* Position below Leaflet zoom controls */
+    left: 16px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* Stop Browsing Button */
+.stop-browsing-btn {
+    background: rgba(229, 62, 62, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    padding: 10px 16px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.stop-browsing-btn:hover {
+    background: rgba(229, 62, 62, 1);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(229, 62, 62, 0.4);
+}
+
+.stop-browsing-btn svg {
+    flex-shrink: 0;
+}
+
+/* Stop Nearby Button */
+.stop-nearby-btn {
+    background: rgba(229, 62, 62, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    padding: 10px 16px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.stop-nearby-btn:hover {
+    background: rgba(229, 62, 62, 1);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(229, 62, 62, 0.4);
+}
+
+.stop-nearby-btn svg {
+    flex-shrink: 0;
+}
+
 .map-loading {
     position: absolute;
     top: 0;
@@ -154,7 +220,8 @@
     display: none !important;
 }
 
-/* Zoom Logic: Low (Lines only) */
+
+/* Zoom Logic: Low (Lines only - hide labels, vehicles, AND stops) */
 .zoom-low .custom-stop-marker,
 .zoom-low .custom-vehicle-marker,
 .zoom-low .stop-label-tooltip {
@@ -163,7 +230,7 @@
     pointer-events: none !important;
 }
 
-/* Zoom Logic: Mid (Stops Only - No Labels, No Vehicles) */
+/* Zoom Logic: Mid (Stops + Lines - No Labels, No Vehicles) */
 .zoom-mid .custom-vehicle-marker,
 .zoom-mid .stop-label-tooltip {
     display: none !important;
@@ -231,54 +298,59 @@
 
 /* Prediction Popup Styles */
 .popup-predictions {
-    margin-top: 12px;
-    border-top: 1px solid rgba(0, 0, 0, 0.1);
-    padding-top: 8px;
-    min-width: 200px;
+    margin-top: 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+    padding-top: 12px;
+    min-width: 280px;
 }
 
 .predictions-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 12px;
+    gap: 16px;
 }
 
 .direction-section {
     min-width: 0;
-    /* Allow content to shrink */
 }
 
 .loading-predictions,
 .no-predictions {
-    font-size: 0.85rem;
-    color: var(--text-muted);
+    font-size: 0.9rem;
+    color: #94a3b8;
     font-style: italic;
     text-align: center;
-    padding: 4px 0;
+    padding: 8px 0;
 }
 
 .direction-header {
-    font-size: 10px;
+    font-size: 11px;
     text-transform: uppercase;
-    color: #a0aec0;
+    color: #60a5fa;
     font-weight: 700;
     margin-top: 0;
-    margin-bottom: 4px;
-    letter-spacing: 0.05em;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    padding-bottom: 2px;
+    margin-bottom: 8px;
+    letter-spacing: 0.08em;
+    border-bottom: 2px solid rgba(96, 165, 250, 0.3);
+    padding-bottom: 4px;
 }
 
 .prediction-row {
     display: flex;
     align-items: center;
-    gap: 5px;
-    padding: 3px 5px;
-    background: rgba(0, 0, 0, 0.03);
-    border-radius: 3px;
-    margin-bottom: 2px;
-    border-left-width: 2px !important;
-    /* Thinner accent line */
+    gap: 8px;
+    padding: 8px 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    margin-bottom: 6px;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+    max-width: 100%;
+}
+
+.prediction-row:hover {
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateX(2px);
 }
 
 .prediction-row:last-child {
@@ -286,26 +358,29 @@
 }
 
 .pred-route-badge {
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 700;
-    padding: 1px 4px;
-    border-radius: 3px;
-    min-width: 18px;
+    padding: 3px 6px;
+    border-radius: 4px;
+    min-width: 22px;
     text-align: center;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 .pred-dest {
     flex: 1;
-    font-size: 9px;
-    font-weight: 500;
-    color: #ffffff;
-    line-height: 1.2;
+    font-size: 11px;
+    font-weight: 600;
+    color: #e2e8f0;
+    line-height: 1.3;
 }
 
 .pred-time {
-    font-size: 10px;
+    font-size: 13px;
     font-weight: 700;
     color: #ffffff;
+    min-width: 45px;
+    text-align: right;
 }
 
 /* Leaflet Popup Override */
@@ -317,6 +392,7 @@
 .leaflet-popup-content {
     margin: 12px;
     line-height: 1.4;
+    min-width: 400px;
 }
 
 /* Walking Path Animation */
