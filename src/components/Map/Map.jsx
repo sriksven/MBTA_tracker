@@ -14,7 +14,7 @@ L.Icon.Default.mergeOptions({
     shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
 })
 
-function Map({ vehicles, stops, routeLines, selectedRoutes, loading, showLocation, customLocation, searchRoute, isBrowsingMode, onStopBrowsing, isNearbyMode, onStopNearby, onEnterNearbyMode }) {
+function Map({ vehicles, stops, routeLines, selectedRoutes, loading, showLocation, customLocation, searchRoute, isBrowsingMode, onStopBrowsing, isNearbyMode, onStopNearby, onEnterNearbyMode, onRefresh, transitMode }) {
     const mapRef = useRef(null)
     const mapInstanceRef = useRef(null)
     const vehicleMarkersRef = useRef({})
@@ -333,10 +333,14 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, showLocatio
             }
 
             const layerGroup = L.layerGroup().addTo(mapInstanceRef.current)
+
+            // Bus routes are thinner than tram/rail routes
+            const lineWeight = (routeData.color === '#FFC72C') ? 2.5 : 4
+
             routeData.polylines.forEach(coordinates => {
                 const polyline = L.polyline(coordinates, {
                     color: lineColor,
-                    weight: 4,
+                    weight: lineWeight,
                     opacity: 0.9,
                     smoothFactor: 1,
                 })
@@ -449,9 +453,12 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, showLocatio
         stopMarkersRef.current = {}
 
         stops.forEach(stop => {
+            // Bus stops are smaller than tram/rail stops
+            const markerRadius = (transitMode === 'bus') ? 3 : 4
+
             // Use CircleMarker for better performance with many points
             const marker = L.circleMarker([stop.latitude, stop.longitude], {
-                radius: 4, // 8px diameter
+                radius: markerRadius,
                 fillColor: 'white',
                 color: '#333',
                 weight: 1.5,
@@ -914,7 +921,7 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, showLocatio
 
     return (
         <div className="map-wrapper">
-            <button className="map-refresh-btn" onClick={() => window.location.reload()} aria-label="Refresh app">
+            <button className="map-refresh-btn" onClick={onRefresh} aria-label="Refresh map data">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2" />
                 </svg>

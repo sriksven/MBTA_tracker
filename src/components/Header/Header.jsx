@@ -41,9 +41,9 @@ function Header({
                         <button
                             className={`transit-mode-btn ${transitMode === 'subway' ? 'active' : ''}`}
                             onClick={() => onTransitModeChange('subway')}
-                            title="Subway & Light Rail Lines"
+                            title="Tram & Light Rail Lines"
                         >
-                            🚇 Subway
+                            🚊 Tram
                         </button>
                         <button
                             className={`transit-mode-btn ${transitMode === 'bus' ? 'active' : ''}`}
@@ -57,7 +57,7 @@ function Header({
                             onClick={() => onTransitModeChange('rail')}
                             title="Commuter Rail"
                         >
-                            🚆 Rail
+                            🚆 Commuter Rail
                         </button>
                     </div>
                 </div>

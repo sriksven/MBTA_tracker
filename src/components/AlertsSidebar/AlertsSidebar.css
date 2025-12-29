@@ -1,22 +1,23 @@
 .alerts-sidebar {
-    width: 280px;
-    min-width: 280px;
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 320px;
+    min-width: 320px;
     background: var(--bg-secondary);
     border-left: 1px solid var(--border-color);
     display: flex;
     flex-direction: column;
     overflow: hidden;
     box-shadow: var(--shadow-lg);
-    transition: width var(--transition-base), min-width var(--transition-base);
-    position: relative;
     z-index: 9999;
+    transition: transform 0.3s ease;
+    transform: translateX(100%);
 }
 
-.alerts-sidebar.collapsed {
-    width: 0;
-    min-width: 0;
-    border-left: none;
-    box-shadow: none;
+.alerts-sidebar:not(.collapsed) {
+    transform: translateX(0);
 }
 
 .alerts-sidebar-header {

@@ -54,25 +54,25 @@
     transition: right 0.3s ease, background 0.2s ease, transform 0.2s ease;
 }
 
-/* Position for Alerts toggle (top right) */
+/* Position for Routes toggle (top right) */
 .sidebar-toggle.right.position-top {
     top: 180px;
     transform: none;
 }
 
-/* Position for Routes toggle (bottom right) */
+/* Position for Alerts toggle (bottom right) */
 .sidebar-toggle.right.position-bottom {
     bottom: 160px;
     top: auto;
     transform: none;
 }
 
-/* When Alerts sidebar is open */
+/* When Routes sidebar is open */
 .sidebar-toggle.right.position-top.sidebar-open {
-    right: 280px !important;
+    right: 320px !important;
 }
 
-/* When Routes sidebar is open */
+/* When Alerts sidebar is open */
 .sidebar-toggle.right.position-bottom.sidebar-open {
     right: 320px !important;
 }

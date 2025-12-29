@@ -399,14 +399,7 @@ function App() {
                     isNearbyMode={isNearbyMode}
                     onStopNearby={handleStopNearby}
                     onEnterNearbyMode={() => setIsNearbyMode(true)}
-                />
-
-                <AlertsSidebar
-                    alerts={alerts}
-                    isOpen={showAlertsSidebar}
-                    onClose={() => setShowAlertsSidebar(false)}
                     transitMode={transitMode}
-                    selectedRoutes={selectedRoutes}
                 />
 
                 <RouteSelector
@@ -418,6 +411,14 @@ function App() {
                     isOpen={showRouteSelector}
                     onClose={() => setShowRouteSelector(false)}
                     transitMode={transitMode}
+                />
+
+                <AlertsSidebar
+                    alerts={alerts}
+                    isOpen={showAlertsSidebar}
+                    onClose={() => setShowAlertsSidebar(false)}
+                    transitMode={transitMode}
+                    selectedRoutes={selectedRoutes}
                 />
 
                 <BrowsePanel
@@ -442,7 +443,7 @@ function App() {
             <SidebarToggle
                 label="Routes"
                 side="right"
-                position="bottom"
+                position="top"
                 isOpen={showRouteSelector}
                 onClick={() => {
                     setShowRouteSelector(!showRouteSelector)
@@ -456,12 +457,14 @@ function App() {
             <SidebarToggle
                 label="Alerts"
                 side="right"
-                position="top"
+                position="bottom"
                 isOpen={showAlertsSidebar}
                 badge={alerts.length}
                 onClick={() => {
                     setShowAlertsSidebar(!showAlertsSidebar)
-                    if (!showAlertsSidebar) setShowRouteSelector(false)
+                    if (!showAlertsSidebar) {
+                        setShowRouteSelector(false)
+                    }
                 }}
             />
         </div>
