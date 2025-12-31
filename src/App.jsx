@@ -30,6 +30,7 @@ function App() {
     const [searchRoute, setSearchRoute] = useState(null)
     const [isLocationEnabled, setIsLocationEnabled] = useState(true)
     const [customLocation, setCustomLocation] = useState(null)
+    const [userLocation, setUserLocation] = useState(null) // Track actual GPS location
     const [clickLocation, setClickLocation] = useState(null) // Track map click location for nearby
     const [lastUpdate, setLastUpdate] = useState(null)
     const [loading, setLoading] = useState(true)
@@ -100,6 +101,28 @@ function App() {
         loadInitialData()
     }, [transitMode, isBrowsingMode, isNearbyMode]) // Reload when transit mode changes (but not in browse/nearby mode)
 
+    // Track user's GPS location
+    useEffect(() => {
+        if (!isLocationEnabled || customLocation) {
+            setUserLocation(null)
+            return
+        }
+
+        if ('geolocation' in navigator) {
+            const watchId = navigator.geolocation.watchPosition(
+                (position) => {
+                    setUserLocation({
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude
+                    })
+                },
+                (error) => console.error("Geolocation error:", error),
+                { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
+            )
+
+            return () => navigator.geolocation.clearWatch(watchId)
+        }
+    }, [isLocationEnabled, customLocation])
 
     // Helper function to filter routes by transit mode
     const filterRoutesByMode = (allRoutes, mode) => {
@@ -318,6 +341,7 @@ function App() {
         // Exit nearby mode and return to normal view
         setIsNearbyMode(false)
         setIsLocationEnabled(true)
+        setClickLocation(null) // Clear click location
 
         // Clear everything first
         setStops([])
@@ -347,6 +371,13 @@ function App() {
             }
         })
         setRouteLines(shapes)
+    }
+
+    const handleMapClick = (location) => {
+        // Only set click location if nearby panel is open
+        if (showNearbyPanel) {
+            setClickLocation(location)
+        }
     }
 
     return (
@@ -404,6 +435,7 @@ function App() {
                     onStopNearby={handleStopNearby}
                     onEnterNearbyMode={() => setIsNearbyMode(true)}
                     transitMode={transitMode}
+                    onMapClick={handleMapClick}
                 />
 
                 <RouteSelector
@@ -434,8 +466,11 @@ function App() {
 
                 <NearbyPanel
                     isOpen={showNearbyPanel}
-                    onClose={() => setShowNearbyPanel(false)}
-                    userLocation={isLocationEnabled ? customLocation : null}
+                    onClose={() => {
+                        setShowNearbyPanel(false)
+                        setClickLocation(null)
+                    }}
+                    userLocation={userLocation}
                     clickLocation={clickLocation}
                     stops={stops}
                     vehicles={vehicles}

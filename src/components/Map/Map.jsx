@@ -13,7 +13,7 @@ L.Icon.Default.mergeOptions({
     shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
 })
 
-function Map({ vehicles, stops, routeLines, selectedRoutes, loading, showLocation, customLocation, searchRoute, isBrowsingMode, onStopBrowsing, isNearbyMode, onStopNearby, onEnterNearbyMode, onRefresh, transitMode }) {
+function Map({ vehicles, stops, routeLines, selectedRoutes, loading, showLocation, customLocation, searchRoute, isBrowsingMode, onStopBrowsing, isNearbyMode, onStopNearby, onEnterNearbyMode, onRefresh, transitMode, onMapClick }) {
     const mapRef = useRef(null)
     const mapInstanceRef = useRef(null)
     const vehicleMarkersRef = useRef({})
@@ -52,6 +52,13 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, showLocatio
             mapInstanceRef.current.on('moveend', () => {
                 const center = mapInstanceRef.current.getCenter()
                 setMapCenter({ lat: center.lat, lng: center.lng })
+            })
+
+            // Handle map clicks for nearby feature
+            mapInstanceRef.current.on('click', (e) => {
+                if (onMapClick) {
+                    onMapClick({ lat: e.latlng.lat, lng: e.latlng.lng })
+                }
             })
         }
 
