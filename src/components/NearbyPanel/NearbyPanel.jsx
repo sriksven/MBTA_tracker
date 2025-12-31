@@ -10,12 +10,15 @@ function NearbyPanel({ isOpen, onClose, userLocation, clickLocation, stops, vehi
         if (!isOpen) return
 
         const location = userLocation || clickLocation
-        if (!location) return
+        if (!location) {
+            setNearbyStops([])
+            return
+        }
 
         findNearbyStops(location)
-    }, [isOpen, userLocation, clickLocation, stops, vehicles])
+    }, [isOpen, userLocation, clickLocation, stops])
 
-    const findNearbyStops = (location) => {
+    const findNearbyStops = async (location) => {
         setLoading(true)
 
         // Calculate distance between two coordinates
@@ -38,22 +41,49 @@ function NearbyPanel({ isOpen, onClose, userLocation, clickLocation, stops, vehi
             .sort((a, b) => a.distance - b.distance)
             .slice(0, 6) // Max 6 stops
 
-        // For each stop, find nearby vehicles
-        const stopsWithVehicles = stopsWithDistance.map(stop => {
-            const nearbyVehicles = vehicles
-                .filter(vehicle => {
-                    const dist = getDistance(stop.latitude, stop.longitude, vehicle.latitude, vehicle.longitude)
-                    return dist <= 0.5 // Within 500m
-                })
-                .slice(0, 3) // Max 3 vehicles per stop
+        // Fetch predictions for each stop
+        const stopsWithPredictions = await Promise.all(
+            stopsWithDistance.map(async (stop) => {
+                try {
+                    const predictions = await MBTAService.getPredictions(stop.id)
 
-            return {
-                ...stop,
-                vehicles: nearbyVehicles
-            }
-        })
+                    // Process predictions to show next 3 arrivals
+                    const now = new Date()
+                    const upcomingPredictions = predictions
+                        .map(p => {
+                            const time = new Date(p.arrivalTime || p.departureTime)
+                            const diffMs = time - now
+                            const diffMins = Math.floor(diffMs / 60000)
 
-        setNearbyStops(stopsWithVehicles)
+                            return {
+                                routeName: p.route?.shortName || p.route?.name || 'Unknown',
+                                routeColor: p.route?.color ? `#${p.route.color}` : '#666',
+                                routeTextColor: p.route?.textColor ? `#${p.route.textColor}` : '#ffffff',
+                                headsign: p.headsign || 'Unknown',
+                                minutes: diffMins,
+                                status: p.status,
+                                arrivalTime: time
+                            }
+                        })
+                        .filter(p => p.minutes >= 0) // Only future arrivals
+                        .sort((a, b) => a.minutes - b.minutes)
+                        .slice(0, 3) // Show next 3 arrivals
+
+                    return {
+                        ...stop,
+                        predictions: upcomingPredictions
+                    }
+                } catch (error) {
+                    console.error(`Error fetching predictions for stop ${stop.id}:`, error)
+                    return {
+                        ...stop,
+                        predictions: []
+                    }
+                }
+            })
+        )
+
+        setNearbyStops(stopsWithPredictions)
         setLoading(false)
     }
 
@@ -95,34 +125,49 @@ function NearbyPanel({ isOpen, onClose, userLocation, clickLocation, stops, vehi
                     <div className="nearby-stops-list">
                         {nearbyStops.map((stop, index) => (
                             <div key={stop.id || index} className="nearby-stop-item">
-                                <div className="stop-info">
-                                    <h3 className="stop-name">{stop.name}</h3>
-                                    <span className="stop-distance">
-                                        {stop.distance < 0.1
-                                            ? `${Math.round(stop.distance * 1000)}m`
-                                            : `${stop.distance.toFixed(2)}km`}
-                                    </span>
+                                <div className="stop-header">
+                                    <div className="stop-info">
+                                        <h3 className="stop-name">{stop.name}</h3>
+                                        <div className="stop-meta">
+                                            <span className="stop-distance">
+                                                🚶 {stop.distance < 0.1
+                                                    ? `${Math.round(stop.distance * 1000)}m`
+                                                    : `${stop.distance.toFixed(2)}km`}
+                                            </span>
+                                            <span className="walk-time">
+                                                ~{Math.ceil(stop.distance * 12)} min walk
+                                            </span>
+                                        </div>
+                                    </div>
                                 </div>
 
-                                {stop.vehicles && stop.vehicles.length > 0 ? (
-                                    <div className="stop-vehicles">
-                                        {stop.vehicles.map((vehicle, vIndex) => (
-                                            <div key={vehicle.id || vIndex} className="vehicle-item">
+                                {stop.predictions && stop.predictions.length > 0 ? (
+                                    <div className="predictions-list">
+                                        {stop.predictions.map((pred, pIndex) => (
+                                            <div key={pIndex} className="prediction-item">
                                                 <div
-                                                    className="vehicle-badge"
-                                                    style={{ backgroundColor: vehicle.routeColor || '#666' }}
+                                                    className="route-badge"
+                                                    style={{
+                                                        backgroundColor: pred.routeColor,
+                                                        color: pred.routeTextColor
+                                                    }}
                                                 >
-                                                    {vehicle.routeName}
+                                                    {pred.routeName}
                                                 </div>
-                                                <span className="vehicle-status">
-                                                    {vehicle.status || 'In Transit'}
-                                                </span>
+                                                <div className="prediction-info">
+                                                    <span className="headsign">{pred.headsign}</span>
+                                                    <span className="arrival-time">
+                                                        {pred.minutes <= 0 ? 'Arriving' :
+                                                            pred.minutes === 1 ? '1 min' :
+                                                                `${pred.minutes} mins`}
+                                                    </span>
+                                                </div>
                                             </div>
                                         ))}
                                     </div>
                                 ) : (
-                                    <div className="no-vehicles">
-                                        <span>No vehicles nearby</span>
+                                    <div className="no-predictions">
+                                        <span>No upcoming arrivals</span>
                                     </div>
                                 )}
                             </div>
