@@ -6,6 +6,7 @@ import AlertsSidebar from './components/AlertsSidebar/AlertsSidebar'
 import SidebarToggle from './components/SidebarToggle/SidebarToggle'
 import SearchSidebar from './components/TransportModeSelector/TransportModeSelector'
 import BrowsePanel from './components/BrowsePanel/BrowsePanel'
+import NearbyPanel from './components/NearbyPanel/NearbyPanel'
 import { MBTAService } from './services/mbta.service'
 import './App.css'
 
@@ -22,12 +23,14 @@ function App() {
     const [showAlertsSidebar, setShowAlertsSidebar] = useState(false)
     const [showSearchSidebar, setShowSearchSidebar] = useState(false)
     const [showBrowsePanel, setShowBrowsePanel] = useState(false)
+    const [showNearbyPanel, setShowNearbyPanel] = useState(false)
     const [isBrowsingMode, setIsBrowsingMode] = useState(false) // Track if in browse mode
     const [browsedRoute, setBrowsedRoute] = useState(null) // Store the browsed route info
     const [isNearbyMode, setIsNearbyMode] = useState(false) // Track if in nearby mode
     const [searchRoute, setSearchRoute] = useState(null)
     const [isLocationEnabled, setIsLocationEnabled] = useState(true)
     const [customLocation, setCustomLocation] = useState(null)
+    const [clickLocation, setClickLocation] = useState(null) // Track map click location for nearby
     const [lastUpdate, setLastUpdate] = useState(null)
     const [loading, setLoading] = useState(true)
     const [transitMode, setTransitMode] = useState('subway') // 'subway', 'bus', 'rail'
@@ -371,6 +374,7 @@ function App() {
                 }}
                 loading={loading}
                 onBrowseClick={() => setShowBrowsePanel(true)}
+                onNearbyClick={() => setShowNearbyPanel(true)}
             />
 
             <div className="app-content">
@@ -425,6 +429,16 @@ function App() {
                     isOpen={showBrowsePanel}
                     onClose={() => setShowBrowsePanel(false)}
                     onStopSelect={handleBrowseStopSelect}
+                    transitMode={transitMode}
+                />
+
+                <NearbyPanel
+                    isOpen={showNearbyPanel}
+                    onClose={() => setShowNearbyPanel(false)}
+                    userLocation={isLocationEnabled ? customLocation : null}
+                    clickLocation={clickLocation}
+                    stops={stops}
+                    vehicles={vehicles}
                     transitMode={transitMode}
                 />
             </div>

@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react'
 import L from 'leaflet'
 import { MBTAService } from '../../services/mbta.service'
 import { formatVehicleStatus, formatSpeed } from '../../utils/formatters'
-import NearbyButton from '../NearbyButton/NearbyButton'
 import 'leaflet/dist/leaflet.css'
 import './Map.css'
 
@@ -954,11 +953,6 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, showLocatio
                         <span>Stop Nearby</span>
                     </button>
                 )}
-                <NearbyButton
-                    mapCenter={mapCenter}
-                    onStopSelect={handleNearbyStopSelect}
-                    onEnterNearbyMode={onEnterNearbyMode}
-                />
             </div>
 
             <div ref={mapRef} className="map" />

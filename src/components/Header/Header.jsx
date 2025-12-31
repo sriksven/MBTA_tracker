@@ -11,7 +11,8 @@ function Header({
     transitMode,
     onTransitModeChange,
     loading,
-    onBrowseClick
+    onBrowseClick,
+    onNearbyClick
 }) {
     const [timeString, setTimeString] = useState('--:--:--')
 
@@ -64,6 +65,40 @@ function Header({
 
                 <div className="header-actions">
                     <button
+                        className="nearby-btn"
+                        onClick={onNearbyClick}
+                        title="Find nearby stations"
+                        aria-label="Nearby stations"
+                    >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <circle cx="12" cy="12" r="10" />
+                            <circle cx="12" cy="12" r="3" fill="currentColor" />
+                            <line x1="12" y1="2" x2="12" y2="6" />
+                            <line x1="12" y1="18" x2="12" y2="22" />
+                            <line x1="4.93" y1="4.93" x2="7.76" y2="7.76" />
+                            <line x1="16.24" y1="16.24" x2="19.07" y2="19.07" />
+                            <line x1="2" y1="12" x2="6" y2="12" />
+                            <line x1="18" y1="12" x2="22" y2="12" />
+                            <line x1="4.93" y1="19.07" x2="7.76" y2="16.24" />
+                            <line x1="16.24" y1="7.76" x2="19.07" y2="4.93" />
+                        </svg>
+                        <span>Nearby</span>
+                    </button>
+
+                    <button
+                        className="browse-btn"
+                        onClick={onBrowseClick}
+                        title="Browse all routes and stops"
+                        aria-label="Browse routes"
+                    >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                            <polyline points="9 22 9 12 15 12 15 22" />
+                        </svg>
+                        <span>Browse</span>
+                    </button>
+
+                    <button
                         className={`location-toggle-btn ${isLocationEnabled ? 'active' : ''}`}
                         onClick={onToggleLocation}
                         title={isLocationEnabled ? "Disable User Location" : "Enable User Location"}
@@ -77,19 +112,6 @@ function Header({
                             )}
                         </svg>
                         <span className="location-btn-text">{isLocationEnabled ? 'My Location' : 'Locate Me'}</span>
-                    </button>
-
-                    <button
-                        className="browse-btn"
-                        onClick={onBrowseClick}
-                        title="Browse all routes and stops"
-                        aria-label="Browse routes"
-                    >
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-                            <polyline points="9 22 9 12 15 12 15 22" />
-                        </svg>
-                        <span className="browse-btn-text">Browse</span>
                     </button>
 
                     {searchRoute && (
