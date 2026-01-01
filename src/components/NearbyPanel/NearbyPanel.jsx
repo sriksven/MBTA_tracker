@@ -1,22 +1,43 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { MBTAService } from '../../services/mbta.service'
 import './NearbyPanel.css'
 
-function NearbyPanel({ isOpen, onClose, userLocation, clickLocation, stops, vehicles, transitMode }) {
+function NearbyPanel({ isOpen, onClose, userLocation, clickLocation, mapCenter, stops, vehicles, transitMode }) {
     const [nearbyStops, setNearbyStops] = useState([])
     const [loading, setLoading] = useState(false)
+    const initialLocationSet = useRef(false)
 
     useEffect(() => {
-        if (!isOpen) return
+        if (!isOpen) {
+            initialLocationSet.current = false
+            return
+        }
 
-        const location = userLocation || clickLocation
+        // Priority logic:
+        // 1. On first open with user location -> use user location
+        // 2. If map center changes (user panned map) -> use map center
+        // 3. Fallback to click location
+        let location = null
+
+        if (!initialLocationSet.current && userLocation) {
+            // First time opening with GPS location
+            location = userLocation
+            initialLocationSet.current = true
+        } else if (mapCenter) {
+            // Map has been panned or user location not available
+            location = mapCenter
+        } else if (clickLocation) {
+            // Fallback to click location
+            location = clickLocation
+        }
+
         if (!location) {
             setNearbyStops([])
             return
         }
 
         findNearbyStops(location)
-    }, [isOpen, userLocation, clickLocation, stops])
+    }, [isOpen, userLocation, clickLocation, mapCenter, stops])
 
     const findNearbyStops = async (location) => {
         setLoading(true)

@@ -32,6 +32,7 @@ function App() {
     const [customLocation, setCustomLocation] = useState(null)
     const [userLocation, setUserLocation] = useState(null) // Track actual GPS location
     const [clickLocation, setClickLocation] = useState(null) // Track map click location for nearby
+    const [mapCenter, setMapCenter] = useState(null) // Track map center for nearby
     const [lastUpdate, setLastUpdate] = useState(null)
     const [loading, setLoading] = useState(true)
     const [transitMode, setTransitMode] = useState('subway') // 'subway', 'bus', 'rail'
@@ -436,6 +437,7 @@ function App() {
                     onEnterNearbyMode={() => setIsNearbyMode(true)}
                     transitMode={transitMode}
                     onMapClick={handleMapClick}
+                    onMapCenterChange={setMapCenter}
                 />
 
                 <RouteSelector
@@ -472,6 +474,7 @@ function App() {
                     }}
                     userLocation={userLocation}
                     clickLocation={clickLocation}
+                    mapCenter={mapCenter}
                     stops={stops}
                     vehicles={vehicles}
                     transitMode={transitMode}
