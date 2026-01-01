@@ -52,12 +52,32 @@ function App() {
                 setRoutes(allRoutes)
 
                 // Filter routes based on current transit mode
-                const filteredRoutes = filterRoutesByMode(allRoutes, transitMode)
+                let filteredRoutes = filterRoutesByMode(allRoutes, transitMode)
+
+                // For bus mode, only select major/key routes to avoid freezing
+                if (transitMode === 'bus') {
+                    // Key bus routes in Boston (most popular/frequent)
+                    const keyBusRoutes = ['1', '15', '22', '23', '28', '39', '57', '66', '71', '73', '77', '111', '116', '117']
+                    filteredRoutes = filteredRoutes.filter(r => keyBusRoutes.includes(r.id))
+                    console.log(`Bus mode: Showing ${filteredRoutes.length} key routes out of ${allRoutes.filter(r => r.type === 3).length} total bus routes`)
+                }
+
                 console.log(`Transit mode: ${transitMode}, Filtered routes:`, filteredRoutes)
                 const selectedIds = new Set(filteredRoutes.map(r => r.id))
                 setSelectedRoutes(selectedIds)
 
-                // Load route shapes for initially selected routes IN PARALLEL
+                // For bus mode, SKIP loading route shapes (too many routes, causes freeze)
+                // Buses will show as vehicle markers only
+                if (transitMode === 'bus') {
+                    console.log('Bus mode: Skipping route shape loading for performance')
+                    setRouteLines({})
+                    const alertsData = await MBTAService.getAlerts()
+                    setAlerts(alertsData)
+                    setLoading(false)
+                    return
+                }
+
+                // Load route shapes for subway/rail routes IN PARALLEL
                 console.log(`Fetching shapes for ${filteredRoutes.length} routes in parallel...`)
                 const shapePromises = filteredRoutes.map(async (route) => {
                     const shape = await MBTAService.getRouteShape(route.id)
@@ -132,7 +152,7 @@ function App() {
                 // Type 0 = Light Rail, Type 1 = Heavy Rail (Subway)
                 return allRoutes.filter(r => r.type === 0 || r.type === 1)
             case 'bus':
-                // Type 3 = Bus - Show ALL bus routes
+                // Type 3 = Bus - Return all bus routes (filtering to key routes happens in loadInitialData)
                 return allRoutes.filter(r => r.type === 3)
             case 'rail':
                 // Type 2 = Commuter Rail
