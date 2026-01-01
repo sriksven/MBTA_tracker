@@ -123,7 +123,7 @@ export const MBTAService = {
                     route: route ? {
                         id: route.id,
                         name: route.attributes.long_name,
-                        color: ROUTE_COLORS[route.id] || route.attributes.color || '#666666'
+                        color: route.attributes.type === 3 ? '#FFC72C' : (ROUTE_COLORS[route.id] || route.attributes.color || '#666666')
                     } : null,
                     trip: trip ? {
                         headsign: trip.attributes.headsign

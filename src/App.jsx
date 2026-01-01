@@ -440,8 +440,16 @@ function App() {
                     setTransitMode(mode)
                 }}
                 loading={loading}
-                onBrowseClick={() => setShowBrowsePanel(true)}
-                onNearbyClick={() => setShowNearbyPanel(true)}
+                onBrowseClick={() => {
+                    setShowBrowsePanel(true)
+                    setShowRouteSelector(false)
+                    setShowAlertsSidebar(false)
+                }}
+                onNearbyClick={() => {
+                    setShowNearbyPanel(true)
+                    setShowRouteSelector(false)
+                    setShowAlertsSidebar(false)
+                }}
             />
 
             <div className="app-content">
@@ -527,33 +535,37 @@ function App() {
                 }}
             />
 
-            <SidebarToggle
-                label="Routes"
-                side="right"
-                position="top"
-                isOpen={showRouteSelector}
-                onClick={() => {
-                    setShowRouteSelector(!showRouteSelector)
-                    if (!showRouteSelector) {
-                        setShowSearchSidebar(false)
-                        setShowAlertsSidebar(false)
-                    }
-                }}
-            />
+            {!showBrowsePanel && !showNearbyPanel && (
+                <>
+                    <SidebarToggle
+                        label="Routes"
+                        side="right"
+                        position="top"
+                        isOpen={showRouteSelector}
+                        onClick={() => {
+                            setShowRouteSelector(!showRouteSelector)
+                            if (!showRouteSelector) {
+                                setShowSearchSidebar(false)
+                                setShowAlertsSidebar(false)
+                            }
+                        }}
+                    />
 
-            <SidebarToggle
-                label="Alerts"
-                side="right"
-                position="bottom"
-                isOpen={showAlertsSidebar}
-                badge={alerts.length}
-                onClick={() => {
-                    setShowAlertsSidebar(!showAlertsSidebar)
-                    if (!showAlertsSidebar) {
-                        setShowRouteSelector(false)
-                    }
-                }}
-            />
+                    <SidebarToggle
+                        label="Alerts"
+                        side="right"
+                        position="bottom"
+                        isOpen={showAlertsSidebar}
+                        badge={alerts.length}
+                        onClick={() => {
+                            setShowAlertsSidebar(!showAlertsSidebar)
+                            if (!showAlertsSidebar) {
+                                setShowRouteSelector(false)
+                            }
+                        }}
+                    />
+                </>
+            )}
         </div>
     )
 }

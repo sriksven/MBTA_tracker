@@ -7,7 +7,7 @@
     background: var(--bg-secondary);
     border-left: 1px solid var(--border-color);
     box-shadow: var(--shadow-lg);
-    z-index: 10000;
+    z-index: 15000;
     transition: right 0.3s ease;
     display: flex;
     flex-direction: column;
