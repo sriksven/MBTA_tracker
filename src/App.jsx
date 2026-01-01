@@ -152,8 +152,33 @@ function App() {
         return selectedRoutes
     }, [selectedRoutes])
 
-    // Update stops
+    // Load preloaded stops data on startup
+    const [allStopsData, setAllStopsData] = useState([])
+    const [stopsLoaded, setStopsLoaded] = useState(false)
+
     useEffect(() => {
+        const loadPreloadedStops = async () => {
+            try {
+                console.log('Loading preloaded stops data...')
+                const response = await fetch('/data/stops.json')
+                const data = await response.json()
+                console.log(`✅ Loaded ${data.length} preloaded stops`)
+                setAllStopsData(data)
+                setStopsLoaded(true)
+            } catch (error) {
+                console.error('Error loading preloaded stops:', error)
+                // Fallback to API if preloaded data fails
+                setStopsLoaded(true)
+            }
+        }
+
+        loadPreloadedStops()
+    }, [])
+
+    // Update stops based on selected routes (using preloaded data)
+    useEffect(() => {
+        if (!stopsLoaded) return
+
         const loadStops = async () => {
             if (effectiveSelectedRoutes.size === 0) {
                 console.log('No routes selected, clearing stops')
@@ -163,7 +188,17 @@ function App() {
 
             try {
                 console.log(`Loading stops for ${transitMode} mode, routes:`, Array.from(effectiveSelectedRoutes))
-                const stopsData = await MBTAService.getStopsForRoutes(Array.from(effectiveSelectedRoutes))
+
+                let stopsData
+                if (allStopsData.length > 0) {
+                    // Use preloaded data - much faster!
+                    console.log('Using preloaded stops data')
+                    stopsData = allStopsData
+                } else {
+                    // Fallback to API
+                    console.log('Falling back to API for stops')
+                    stopsData = await MBTAService.getStopsForRoutes(Array.from(effectiveSelectedRoutes))
+                }
 
                 // Filter out bus stops when in subway/rail mode
                 let filteredStops = stopsData
@@ -180,7 +215,7 @@ function App() {
         }
 
         loadStops()
-    }, [effectiveSelectedRoutes, transitMode])
+    }, [effectiveSelectedRoutes, transitMode, stopsLoaded, allStopsData])
 
     // Update vehicles
     useEffect(() => {
