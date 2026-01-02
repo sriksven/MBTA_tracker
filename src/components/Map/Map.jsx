@@ -674,7 +674,7 @@ function Map({ vehicles, stops, routeLines, selectedRoutes, loading, showLocatio
             stopMarkersRef.current[stop.id] = marker
         })
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [stops])
+    }, [stops, transitMode])
 
     // Update vehicle markers
     useEffect(() => {

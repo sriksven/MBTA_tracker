@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import Header from './components/Header/Header'
 import Map from './components/Map/Map'
 import RouteSelector from './components/RouteSelector/RouteSelector'
@@ -39,13 +39,18 @@ function App() {
 
     // Load initial data
     useEffect(() => {
-        const loadInitialData = async () => {
-            // IMMEDIATELY set loading and clear old data BEFORE any async operations
-            setLoading(true)
-            setStops([])
-            setVehicles([])
-            setRouteLines({})
+        // Don't reload if in browse or nearby mode - preserve the current view
+        if (isBrowsingMode || isNearbyMode) {
+            return
+        }
 
+        // IMMEDIATELY clear old data synchronously when transit mode changes
+        setStops([])
+        setVehicles([])
+        setRouteLines({})
+        setLoading(true)
+
+        const loadInitialData = async () => {
             try {
                 // Load ALL routes (including buses now)
                 const allRoutes = await MBTAService.getRoutes()
@@ -56,28 +61,25 @@ function App() {
 
                 // For bus mode, only select major/key routes to avoid freezing
                 if (transitMode === 'bus') {
-                    // Key bus routes in Boston (most popular/frequent)
-                    const keyBusRoutes = ['1', '15', '22', '23', '28', '39', '57', '66', '71', '73', '77', '111', '116', '117']
+                    // Top 3 most popular bus routes in Boston (reduced for performance)
+                    const keyBusRoutes = ['1', '28', '57']
                     filteredRoutes = filteredRoutes.filter(r => keyBusRoutes.includes(r.id))
                     console.log(`Bus mode: Showing ${filteredRoutes.length} key routes out of ${allRoutes.filter(r => r.type === 3).length} total bus routes`)
+                }
+
+                // For commuter rail, only select key routes to avoid freezing
+                if (transitMode === 'rail') {
+                    // Key commuter rail lines (most popular)
+                    const keyRailRoutes = ['CR-Fitchburg', 'CR-Worcester', 'CR-Providence', 'CR-Franklin', 'CR-Lowell']
+                    filteredRoutes = filteredRoutes.filter(r => keyRailRoutes.includes(r.id))
+                    console.log(`Rail mode: Showing ${filteredRoutes.length} key routes out of ${allRoutes.filter(r => r.type === 2).length} total rail routes`)
                 }
 
                 console.log(`Transit mode: ${transitMode}, Filtered routes:`, filteredRoutes)
                 const selectedIds = new Set(filteredRoutes.map(r => r.id))
                 setSelectedRoutes(selectedIds)
 
-                // For bus mode, SKIP loading route shapes (too many routes, causes freeze)
-                // Buses will show as vehicle markers only
-                if (transitMode === 'bus') {
-                    console.log('Bus mode: Skipping route shape loading for performance')
-                    setRouteLines({})
-                    const alertsData = await MBTAService.getAlerts()
-                    setAlerts(alertsData)
-                    setLoading(false)
-                    return
-                }
-
-                // Load route shapes for subway/rail routes IN PARALLEL
+                // Load route shapes for all modes IN PARALLEL
                 console.log(`Fetching shapes for ${filteredRoutes.length} routes in parallel...`)
                 const shapePromises = filteredRoutes.map(async (route) => {
                     const shape = await MBTAService.getRouteShape(route.id)
@@ -112,11 +114,6 @@ function App() {
                 console.error('Error loading initial data:', error)
                 setLoading(false)
             }
-        }
-
-        // Don't reload if in browse or nearby mode - preserve the current view
-        if (isBrowsingMode || isNearbyMode) {
-            return
         }
 
         loadInitialData()
@@ -196,10 +193,22 @@ function App() {
     }, [])
 
     // Update stops based on selected routes (using preloaded data)
+    const currentTransitModeRef = useRef(transitMode)
+
+    useEffect(() => {
+        currentTransitModeRef.current = transitMode
+    }, [transitMode])
+
     useEffect(() => {
         if (!stopsLoaded) return
 
+        // IMMEDIATELY clear stops when transit mode or routes change
+        setStops([])
+
         const loadStops = async () => {
+            // Capture the current mode at the start of this async operation
+            const modeAtStart = currentTransitModeRef.current
+
             if (effectiveSelectedRoutes.size === 0) {
                 console.log('No routes selected, clearing stops')
                 setStops([])
@@ -207,11 +216,17 @@ function App() {
             }
 
             try {
-                console.log(`Loading stops for ${transitMode} mode, routes:`, Array.from(effectiveSelectedRoutes))
+                console.log(`Loading stops for ${modeAtStart} mode, routes:`, Array.from(effectiveSelectedRoutes))
 
                 let stopsData
-                if (allStopsData.length > 0) {
-                    // Use preloaded data - much faster!
+
+                // For bus and rail, fetch stops from API for selected routes only
+                // Preloaded data contains ALL stops which is too much
+                if (modeAtStart === 'bus' || modeAtStart === 'rail') {
+                    console.log('Fetching stops from API for selected routes')
+                    stopsData = await MBTAService.getStopsForRoutes(Array.from(effectiveSelectedRoutes))
+                } else if (allStopsData.length > 0) {
+                    // Use preloaded data for subway - much faster!
                     console.log('Using preloaded stops data')
                     stopsData = allStopsData
                 } else {
@@ -220,14 +235,35 @@ function App() {
                     stopsData = await MBTAService.getStopsForRoutes(Array.from(effectiveSelectedRoutes))
                 }
 
-                // Filter out bus stops when in subway/rail mode
-                let filteredStops = stopsData
-                if (transitMode === 'subway' || transitMode === 'rail') {
-                    // Only show stations (location_type 1) for subway/rail, not individual bus stops
-                    filteredStops = stopsData.filter(stop => stop.type === 'Station')
+                // Check if mode changed while we were loading - if so, discard these results
+                if (currentTransitModeRef.current !== modeAtStart) {
+                    console.log(`Transit mode changed from ${modeAtStart} to ${currentTransitModeRef.current} - discarding stale stops`)
+                    return
                 }
 
-                console.log(`Loaded ${filteredStops.length} stops for ${transitMode} mode (filtered from ${stopsData.length})`)
+                // Filter stops based on transit mode
+                let filteredStops = stopsData
+
+                if (modeAtStart === 'subway') {
+                    // Only show stations (location_type 1) for subway, not individual stops
+                    filteredStops = stopsData.filter(stop => stop.type === 'Station')
+                } else if (modeAtStart === 'rail') {
+                    // Show all commuter rail stations (already filtered by route from API)
+                    filteredStops = stopsData
+                    console.log(`Rail mode: Showing ${filteredStops.length} commuter rail stations`)
+                } else if (modeAtStart === 'bus') {
+                    // Show all bus stops for selected routes (already filtered by route from API)
+                    filteredStops = stopsData
+                    console.log(`Bus mode: Showing ${filteredStops.length} bus stops`)
+                }
+
+                // Final check before setting stops
+                if (currentTransitModeRef.current !== modeAtStart) {
+                    console.log(`Transit mode changed during filtering - discarding stale stops`)
+                    return
+                }
+
+                console.log(`Loaded ${filteredStops.length} stops for ${modeAtStart} mode (filtered from ${stopsData.length})`)
                 setStops(filteredStops)
             } catch (error) {
                 console.error('Error loading stops:', error)
