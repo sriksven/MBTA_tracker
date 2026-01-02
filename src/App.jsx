@@ -205,13 +205,15 @@ function App() {
         // IMMEDIATELY clear stops when transit mode or routes change
         setStops([])
 
+        let cancelled = false
+
         const loadStops = async () => {
             // Capture the current mode at the start of this async operation
             const modeAtStart = currentTransitModeRef.current
 
             if (effectiveSelectedRoutes.size === 0) {
                 console.log('No routes selected, clearing stops')
-                setStops([])
+                if (!cancelled) setStops([])
                 return
             }
 
@@ -235,8 +237,8 @@ function App() {
                     stopsData = await MBTAService.getStopsForRoutes(Array.from(effectiveSelectedRoutes))
                 }
 
-                // Check if mode changed while we were loading - if so, discard these results
-                if (currentTransitModeRef.current !== modeAtStart) {
+                // Check if this effect was cancelled or mode changed
+                if (cancelled || currentTransitModeRef.current !== modeAtStart) {
                     console.log(`Transit mode changed from ${modeAtStart} to ${currentTransitModeRef.current} - discarding stale stops`)
                     return
                 }
@@ -258,19 +260,24 @@ function App() {
                 }
 
                 // Final check before setting stops
-                if (currentTransitModeRef.current !== modeAtStart) {
+                if (cancelled || currentTransitModeRef.current !== modeAtStart) {
                     console.log(`Transit mode changed during filtering - discarding stale stops`)
                     return
                 }
 
                 console.log(`Loaded ${filteredStops.length} stops for ${modeAtStart} mode (filtered from ${stopsData.length})`)
-                setStops(filteredStops)
+                if (!cancelled) setStops(filteredStops)
             } catch (error) {
                 console.error('Error loading stops:', error)
             }
         }
 
         loadStops()
+
+        // Cleanup function - mark this effect as cancelled when it unmounts
+        return () => {
+            cancelled = true
+        }
     }, [effectiveSelectedRoutes, transitMode, stopsLoaded, allStopsData])
 
     // Update vehicles

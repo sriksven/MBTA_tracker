@@ -144,55 +144,66 @@ function NearbyPanel({ isOpen, onClose, userLocation, clickLocation, mapCenter, 
                     </div>
                 ) : (
                     <div className="nearby-stops-list">
-                        {nearbyStops.map((stop, index) => (
-                            <div key={stop.id || index} className="nearby-stop-item">
-                                <div className="stop-header">
-                                    <div className="stop-info">
-                                        <h3 className="stop-name">{stop.name}</h3>
-                                        <div className="stop-meta">
-                                            <span className="stop-distance">
-                                                🚶 {stop.distance < 0.1
-                                                    ? `${Math.round(stop.distance * 1000)}m`
-                                                    : `${stop.distance.toFixed(2)}km`}
-                                            </span>
-                                            <span className="walk-time">
-                                                ~{Math.ceil(stop.distance * 12)} min walk
-                                            </span>
+                        {nearbyStops.map((stop, index) => {
+                            // Get the primary route color (from first prediction)
+                            const primaryColor = stop.predictions?.[0]?.routeColor || '#666'
+
+                            return (
+                                <div
+                                    key={stop.id || index}
+                                    className="nearby-stop-item"
+                                    style={{
+                                        borderLeft: `5px solid ${primaryColor}`
+                                    }}
+                                >
+                                    <div className="stop-header">
+                                        <div className="stop-info">
+                                            <h3 className="stop-name">{stop.name}</h3>
+                                            <div className="stop-meta">
+                                                <span className="stop-distance">
+                                                    🚶 {stop.distance < 0.1
+                                                        ? `${Math.round(stop.distance * 1000)}m`
+                                                        : `${stop.distance.toFixed(2)}km`}
+                                                </span>
+                                                <span className="walk-time">
+                                                    ~{Math.ceil(stop.distance * 12)} min walk
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
 
-                                {stop.predictions && stop.predictions.length > 0 ? (
-                                    <div className="predictions-list">
-                                        {stop.predictions.map((pred, pIndex) => (
-                                            <div key={pIndex} className="prediction-item">
-                                                <div
-                                                    className="route-badge"
-                                                    style={{
-                                                        backgroundColor: pred.routeColor,
-                                                        color: pred.routeTextColor
-                                                    }}
-                                                >
-                                                    {pred.routeName}
+                                    {stop.predictions && stop.predictions.length > 0 ? (
+                                        <div className="predictions-list">
+                                            {stop.predictions.map((pred, pIndex) => (
+                                                <div key={pIndex} className="prediction-item">
+                                                    <div
+                                                        className="route-badge"
+                                                        style={{
+                                                            backgroundColor: pred.routeColor,
+                                                            color: pred.routeTextColor
+                                                        }}
+                                                    >
+                                                        {pred.routeName}
+                                                    </div>
+                                                    <div className="prediction-info">
+                                                        <span className="headsign">{pred.headsign}</span>
+                                                        <span className="arrival-time">
+                                                            {pred.minutes <= 0 ? 'Arriving' :
+                                                                pred.minutes === 1 ? '1 min' :
+                                                                    `${pred.minutes} mins`}
+                                                        </span>
+                                                    </div>
                                                 </div>
-                                                <div className="prediction-info">
-                                                    <span className="headsign">{pred.headsign}</span>
-                                                    <span className="arrival-time">
-                                                        {pred.minutes <= 0 ? 'Arriving' :
-                                                            pred.minutes === 1 ? '1 min' :
-                                                                `${pred.minutes} mins`}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <div className="no-predictions">
-                                        <span>No upcoming arrivals</span>
-                                    </div>
-                                )}
-                            </div>
-                        ))}
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="no-predictions">
+                                            <span>No upcoming arrivals</span>
+                                        </div>
+                                    )}
+                                </div>
+                            )
+                        })}
                     </div>
                 )}
             </div>

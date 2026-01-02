@@ -267,7 +267,7 @@ export const MBTAService = {
                         id: route.id,
                         shortName: route.attributes.short_name,
                         longName: route.attributes.long_name,
-                        color: ROUTE_COLORS[route.id] || route.attributes.color || '#666666',
+                        color: route.attributes.type === 3 ? 'FFC72C' : (ROUTE_COLORS[route.id] || route.attributes.color || '666666'),
                         textColor: route.attributes.text_color || '000000',
                         directionNames: route.attributes.direction_names || ['Outbound', 'Inbound'],
                         type: route.attributes.type
