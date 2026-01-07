@@ -2,13 +2,20 @@ name: Daily Auto Commits
 
 on:
   schedule:
-    # Run at random times throughout the day to appear more natural
-    - cron: '23 7 * * *'   # 7:23 AM UTC
-    - cron: '47 10 * * *'  # 10:47 AM UTC
-    - cron: '15 13 * * *'  # 1:15 PM UTC
-    - cron: '38 16 * * *'  # 4:38 PM UTC
-    - cron: '52 19 * * *'  # 7:52 PM UTC
-    - cron: '11 22 * * *'  # 10:11 PM UTC
+    # Run at random times throughout the day (12 potential times)
+    # Combined with 70% skip probability = ~3-5 actual runs per day with natural variance
+    - cron: '17 5 * * *'   # 5:17 AM UTC
+    - cron: '43 7 * * *'   # 7:43 AM UTC
+    - cron: '28 9 * * *'   # 9:28 AM UTC
+    - cron: '52 10 * * *'  # 10:52 AM UTC
+    - cron: '09 12 * * *'  # 12:09 PM UTC
+    - cron: '34 14 * * *'  # 2:34 PM UTC
+    - cron: '21 16 * * *'  # 4:21 PM UTC
+    - cron: '47 17 * * *'  # 5:47 PM UTC
+    - cron: '13 19 * * *'  # 7:13 PM UTC
+    - cron: '38 20 * * *'  # 8:38 PM UTC
+    - cron: '56 22 * * *'  # 10:56 PM UTC
+    - cron: '25 23 * * *'  # 11:25 PM UTC
   workflow_dispatch: # Allow manual trigger
 
 # Grant write permissions to push commits
