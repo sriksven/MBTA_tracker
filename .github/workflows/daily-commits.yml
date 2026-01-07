@@ -11,6 +11,10 @@ on:
     - cron: '0 21 * * *'  # 9 PM UTC
   workflow_dispatch: # Allow manual trigger
 
+# Grant write permissions to push commits
+permissions:
+  contents: write
+
 jobs:
   auto-commit:
     runs-on: ubuntu-latest
@@ -31,56 +35,155 @@ jobs:
         run: |
           # Array of meaningful commit messages
           commit_messages=(
+            # Route & Navigation
             "Update route calculation algorithm"
-            "Improve error handling for API requests"
             "Refactor stop data fetching logic"
-            "Optimize map rendering performance"
+            "Optimize route planning logic"
+            "Add support for multi-leg journeys"
+            "Improve transfer detection between lines"
+            "Fix route direction display issues"
+            "Add favorite routes feature"
+            "Enhance route comparison functionality"
+            "Update route color coding system"
+            "Improve route filtering options"
+            
+            # Real-time Data & Predictions
+            "Improve error handling for API requests"
             "Add caching for frequently accessed routes"
             "Fix timezone handling in schedule display"
-            "Update dependencies to latest versions"
-            "Improve accessibility for screen readers"
-            "Refactor nearby stops calculation"
-            "Add unit tests for route service"
-            "Update documentation for API endpoints"
-            "Improve loading state animations"
+            "Enhance real-time arrival predictions"
+            "Update vehicle position tracking"
+            "Improve prediction accuracy algorithm"
+            "Add service alerts integration"
+            "Fix delay calculation logic"
+            "Update schedule data refresh rate"
+            "Optimize API polling intervals"
+            
+            # Map & Visualization
+            "Optimize map rendering performance"
             "Fix memory leak in map component"
-            "Optimize bundle size"
+            "Update map marker icons"
+            "Improve map zoom controls"
+            "Add custom map styling"
+            "Fix map clustering for stops"
+            "Enhance map interaction gestures"
+            "Update transit line overlays"
+            "Improve map loading performance"
+            "Add dark mode for map view"
+            
+            # UI/UX Improvements
+            "Improve loading state animations"
             "Add error boundary for map view"
-            "Improve geolocation accuracy"
             "Update color scheme for better contrast"
-            "Refactor state management logic"
-            "Add analytics tracking events"
             "Improve mobile responsiveness"
-            "Fix race condition in data fetching"
-            "Update transit line colors"
-            "Improve search functionality"
-            "Add keyboard navigation support"
-            "Optimize image loading"
             "Fix layout issues on small screens"
-            "Update API request retry logic"
-            "Improve code documentation"
-            "Refactor component structure"
+            "Add loading skeletons for better UX"
+            "Update button styles and interactions"
+            "Improve card component design"
+            "Add smooth transitions between views"
+            "Enhance notification system"
+            
+            # Search & Filters
+            "Improve search functionality"
+            "Add autocomplete for stop search"
+            "Enhance filter performance"
+            "Update search result ranking"
+            "Add recent searches feature"
+            "Improve fuzzy search algorithm"
+            "Fix search input debouncing"
+            "Add search suggestions"
+            
+            # Accessibility
+            "Improve accessibility for screen readers"
+            "Add keyboard navigation support"
+            "Fix accessibility issues"
+            "Enhance ARIA labels"
+            "Improve focus management"
+            "Add high contrast mode"
+            "Update alt text for images"
+            
+            # Performance & Optimization
+            "Optimize bundle size"
+            "Improve animation performance"
             "Add performance monitoring"
+            "Optimize image loading"
+            "Reduce initial load time"
+            "Implement code splitting"
+            "Add lazy loading for routes"
+            "Optimize re-render cycles"
+            "Improve memory management"
+            "Add service worker optimizations"
+            
+            # State Management
+            "Refactor state management logic"
+            "Add user preference persistence"
+            "Improve local storage handling"
+            "Update Redux store structure"
+            "Add state synchronization"
+            "Fix state mutation issues"
+            
+            # Error Handling & Validation
+            "Improve network error handling"
             "Update error messages for clarity"
             "Improve data validation logic"
-            "Add loading skeletons for better UX"
+            "Add fallback for API failures"
             "Fix edge cases in route planning"
-            "Update map marker icons"
-            "Improve network error handling"
-            "Refactor utility functions"
+            "Add input validation"
+            "Improve error recovery logic"
+            
+            # Testing & Quality
+            "Add unit tests for route service"
             "Add integration tests"
+            "Update test coverage"
+            "Add E2E tests for critical flows"
+            "Fix flaky tests"
+            "Improve test performance"
+            
+            # Documentation & Code Quality
+            "Update documentation for API endpoints"
+            "Improve code documentation"
             "Update README documentation"
             "Improve code formatting"
-            "Fix accessibility issues"
-            "Update service worker cache strategy"
-            "Improve offline functionality"
-            "Add user preference persistence"
-            "Update API response parsing"
-            "Improve animation performance"
+            "Add JSDoc comments"
+            "Update contributing guidelines"
+            "Improve code organization"
+            
+            # Dependencies & Build
+            "Update dependencies to latest versions"
             "Fix cross-browser compatibility issues"
             "Update build configuration"
             "Improve type definitions"
             "Add ESLint rules for consistency"
+            "Update Webpack configuration"
+            "Fix dependency vulnerabilities"
+            
+            # Features & Enhancements
+            "Add analytics tracking events"
+            "Refactor nearby stops calculation"
+            "Improve geolocation accuracy"
+            "Add offline functionality"
+            "Update service worker cache strategy"
+            "Add push notification support"
+            "Implement trip planning feature"
+            "Add schedule bookmarking"
+            "Enhance location sharing"
+            
+            # Bug Fixes
+            "Fix race condition in data fetching"
+            "Fix timezone conversion bugs"
+            "Fix scroll behavior on mobile"
+            "Fix touch event handling"
+            "Fix route display glitches"
+            "Fix API response parsing errors"
+            "Fix memory leaks in components"
+            
+            # Refactoring
+            "Refactor component structure"
+            "Refactor utility functions"
+            "Update API response parsing"
+            "Modernize codebase structure"
+            "Simplify complex components"
+            "Extract reusable hooks"
           )
           
           # Determine if we should create commits (70% chance to avoid too many commits)
