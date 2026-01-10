@@ -153,7 +153,9 @@ function NearbyPanel({ isOpen, onClose, userLocation, clickLocation, mapCenter, 
                                     key={stop.id || index}
                                     className="nearby-stop-item"
                                     style={{
-                                        borderLeft: `5px solid ${primaryColor}`
+                                        borderLeft: `6px solid ${primaryColor}`,
+                                        borderTop: `3px solid ${primaryColor}`,
+                                        boxShadow: `inset 0 0 20px ${primaryColor}30`
                                     }}
                                 >
                                     <div className="stop-header">
