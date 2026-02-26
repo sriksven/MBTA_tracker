@@ -4,7 +4,7 @@ on:
   schedule:
     # Run at random times throughout the day (12 potential times)
     # Combined with 70% skip probability = ~3-5 actual runs per day with natural variance
-    - cron: '09 12 * * *'  # 12:09 PM UTC
+    # - cron: '09 12 * * *'  # 12:09 PM UTC
     # - cron: '34 14 * * *'  # 2:34 PM UTC
   workflow_dispatch: # Allow manual trigger
 
